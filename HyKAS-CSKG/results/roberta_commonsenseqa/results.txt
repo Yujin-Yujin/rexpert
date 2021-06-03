@@ -1,0 +1,4 @@
+""
+"Q: A revolving door is convenient for two direction travel, but it also serves as a security measure at a what?"
+["A: bank", "A: library", "A: department store", "A: mall", "A: new york"]
+Accuracy: 0.450
