@@ -1,5 +1,5 @@
 export CUDA_VISIBLE_DEVICES=1
-export DATASET=/home/yujin/r-expert/dataset/multikg
+export DATASET=/home/yujin/r-expert/dataset/multikg/full
 export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/r-expert/output/best/expert/adapters/full
 export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions
 export BATCH=8
@@ -13,7 +13,7 @@ python ../run_multiple_choice.py \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \
     --wandb_project "fusion-multikg" \
     --wandb_entity "rexpert" \
-    --wandb_name "fusion-$ADAPTER_NAMES" \
+    --wandb_name "fusion-$ADAPTER_NAMES-full" \
     --train_fusion \
     --do_train \
     --do_select \

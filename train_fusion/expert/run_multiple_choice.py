@@ -292,8 +292,8 @@ def main():
                 model.add_fusion(adapter_names[0])
 
 
-        for (n,p) in model.named_parameters():
-            print(n, p.requires_grad)
+        # for (n,p) in model.named_parameters():
+        #     print(n, p.requires_grad)
 
     # Get datasets
     train_dataset = (
@@ -317,7 +317,7 @@ def main():
             overwrite_cache=data_args.overwrite_cache,
             mode=Split.dev,
         )
-        if training_args.do_eval or data_args.do_select
+        if training_args.do_eval or data_args.do_select 
         else None
     )
 
@@ -330,7 +330,7 @@ def main():
         overwrite_cache=data_args.overwrite_cache,
         mode=Split.test,
     )
-    if training_args.do_predict or data_args.do_select
+    if training_args.do_predict
     else None
     )
 
@@ -414,10 +414,11 @@ def main():
             )
 
             eval_result = temp_trainer.evaluate()
-            test_result = temp_trainer.predict(test_dataset).metrics
-
-            df = df.append({"checkpoint": checkpoint, "dev_acc": eval_result["eval_acc"], "test_acc":test_result["test_acc"]}, ignore_index=True)
-            print("checkpoint: {}, dev_acc: {}, test_acc:{}".format(checkpoint, eval_result["eval_acc"], test_result["test_acc"]))
+            if test_dataset is not None:
+                test_result = temp_trainer.predict(test_dataset).metrics
+                df = df.append({"checkpoint": checkpoint, "dev_acc": eval_result["eval_acc"], "test_acc":test_result["test_acc"]}, ignore_index=True)
+            else:
+                df = df.append({"checkpoint": checkpoint, "dev_acc": eval_result["eval_acc"]}, ignore_index=True)
         
         # select the best and move
         df.to_csv(os.path.join(training_args.output_dir, "accuracy.csv"))
@@ -444,7 +445,7 @@ def main():
 
         result = trainer.evaluate()
 
-        output_eval_file = os.path.join(training_args.output_dir, "eval_results.txt")
+        output_eval_file = os.path.join(training_args.output_dir, "{}_eval_results.txt".format(data_args.task_name))
         if trainer.is_world_process_zero():
             with open(output_eval_file, "w") as writer:
                 logger.info("***** Eval results *****")
@@ -460,7 +461,7 @@ def main():
         result = trainer.predict(test_dataset)
         result = result.metrics
 
-        output_test_file = os.path.join(training_args.output_dir, "test_results.txt")
+        output_test_file = os.path.join(training_args.output_dir, "{}_test_results.txt".format(data_args.task_name))
         if trainer.is_world_process_zero():
             with open(output_test_file, "w") as writer:
                 logger.info("***** Test results *****")

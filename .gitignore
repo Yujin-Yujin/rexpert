@@ -2,3 +2,5 @@
 **/output
 **/wandb
 **/dataset
+**/.cache
+**/runs
