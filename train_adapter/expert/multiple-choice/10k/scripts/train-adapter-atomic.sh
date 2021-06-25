@@ -1,4 +1,10 @@
-export CUDA_VISIBLE_DEVICES=1
+cd /home/yujin/r-expert/adapter-transformers-mr
+
+pip install .
+
+cd /home/yujin/r-expert/train_adapter/expert/multiple-choice/10k/scripts
+
+export CUDA_VISIBLE_DEVICES=2
 export OUTPUT_DIR=/home/yujin/r-expert/output/expert/adapters/10k
 export DATASET_DIR=/home/yujin/r-expert/dataset/atomic/10k
 export ADAPTER_NAME="atomic"

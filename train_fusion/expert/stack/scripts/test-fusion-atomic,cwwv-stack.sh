@@ -5,16 +5,17 @@ pip install .
 cd /home/yujin/r-expert/train_fusion/expert/stack/scripts
 
 export CUDA_VISIBLE_DEVICES=1
-export DATASET=/home/yujin/r-expert/dataset/socialiqa/origin
+# export DATASET=/home/yujin/r-expert/dataset/socialiqa/origin
+export DATASET=/home/yujin/r-expert/dataset/commonsense/origin
 export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/r-expert/output/best/expert/adapters/full
-export PRETRAINED_FUSION_DIR_PATH=/home/yujin/r-expert/output/expert/fusions/stack/atomic,cwwv/atomic,cwwv
-export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/stack
+export PRETRAINED_FUSION_DIR_PATH=/home/yujin/r-expert/output/expert/fusions/stack/10k/atomic,cwwv/atomic,cwwv
+export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/stack/10k
 export BATCH=8
 export BEST_MODEL_PATH=/home/yujin/r-expert/output/best/expert/fusions/stack
 
 export ADAPTER_NAMES=atomic,cwwv
 python ../run_multiple_choice.py \
-    --task_name siqa \
+    --task_name csqa \
     --model_name_or_path roberta-large \
     --pretrained_adapter_names $ADAPTER_NAMES \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \
@@ -24,7 +25,6 @@ python ../run_multiple_choice.py \
     --wandb_name "fusion-$ADAPTER_NAMES-full-test" \
     --test_fusion \
     --do_eval \
-    --do_predict \
     --seed 42 \
     --data_dir $DATASET \
     --best_model_path $BEST_MODEL_PATH \

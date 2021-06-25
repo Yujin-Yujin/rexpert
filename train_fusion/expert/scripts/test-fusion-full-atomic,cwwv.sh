@@ -1,9 +1,13 @@
+cd /home/yujin/r-expert/adapter-transformers
+pip install .
+cd /home/yujin/r-expert/train_fusion/expert/scripts
+
 export CUDA_VISIBLE_DEVICES=1
 export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/r-expert/output/best/expert/adapters/full
 export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/full
 export BATCH=8
 export BEST_MODEL_PATH=/home/yujin/r-expert/output/best/expert/fusions/full
-export PRETRAINED_FUSION_PATH=/home/yujin/r-expert/output/best/expert/fusions/full
+export PRETRAINED_FUSION_PATH=/home/yujin/r-expert/output/expert/fusions/stack/full/atomic,cwwv
 export TASK_NAME=siqa
 export DATASET=/home/yujin/r-expert/dataset/socialiqa/origin
 # export TASK_NAME=csqa
@@ -21,6 +25,7 @@ python ../run_multiple_choice.py \
     --fusion_path $PRETRAINED_FUSION_PATH/$ADAPTER_NAMES \
     --test_fusion \
     --do_eval \
+    --do_predict \
     --seed 42 \
     --data_dir $DATASET \
     --best_model_path $BEST_MODEL_PATH \

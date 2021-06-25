@@ -7,7 +7,7 @@ cd /home/yujin/r-expert/train_fusion/expert/stack/scripts
 export CUDA_VISIBLE_DEVICES=2
 export DATASET=/home/yujin/r-expert/dataset/multikg/full
 export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/r-expert/output/best/expert/adapters/full
-export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/stack
+export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/stack/full
 export BATCH=8
 export BEST_MODEL_PATH=/home/yujin/r-expert/output/best/expert/fusions/stack
 

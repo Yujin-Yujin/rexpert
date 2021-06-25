@@ -224,11 +224,16 @@ class BertFusion(nn.Module):
 
         # context_layer = torch.squeeze(torch.matmul(attention_probs.unsqueeze(2), value_layer), dim=2)
 
-        if self.config.adapter_fusion["value"] and not self.config.adapter_fusion["value_before_softmax"]:
-            # key/value have dims => batch, toks, feats
-            context_layer = self.value(value)
-        else:
-            context_layer = value
+        #pooh check!!!!
+        context_layer = self.value(value)
+
+        # if self.config.adapter_fusion["value"] and not self.config.adapter_fusion["value_before_softmax"]:
+        #     # key/value have dims => batch, toks, feats
+        #     context_layer = self.value(value)
+        #     print("pooh pass here?")
+        # else:
+        #     context_layer = value
+        #     print("pooh does not pass ")
 
         # if not self.config.adapter_fusion["residual_before"]:
         #     context_layer += residual
