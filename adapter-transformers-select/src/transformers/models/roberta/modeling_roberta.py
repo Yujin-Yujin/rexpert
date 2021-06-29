@@ -854,7 +854,10 @@ class RobertaModel(BertModelAdaptersMixin, RobertaPreTrainedModel):
             return_dict=return_dict,
             **kwargs,
         )
+        # pooh sequence_output shape = torch.Size([24, 128, 1024])
         sequence_output = encoder_outputs[0]
+
+        # pooh pooled_output shape = torch.Size([24, 1024])
         pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
 
         if not return_dict:
@@ -1379,6 +1382,7 @@ class RobertaForMultipleChoice(ModelWithHeadsAdaptersMixin, RobertaPreTrainedMod
             return_dict=return_dict,
             adapter_names=adapter_names,
         )
+        # pooh pooled output shape = [answer_option_num * batch size, hidden_state]
         pooled_output = outputs[1]
 
         pooled_output = self.dropout(pooled_output)

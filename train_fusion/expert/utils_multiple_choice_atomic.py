@@ -580,7 +580,7 @@ class ATOMICProcessor(DataProcessor):
             data_raw = json.loads(line.strip("\n"))
             examples.append(
                 InputExample(
-                example_id= data_raw['id'],
+                example_id= str(data_raw["id"]),
                 question="",  
                 contexts=[data_raw['context'], data_raw['context'], data_raw['context']],
                 endings=[data_raw['candidates'][0], data_raw['candidates'][1], data_raw['candidates'][2]],

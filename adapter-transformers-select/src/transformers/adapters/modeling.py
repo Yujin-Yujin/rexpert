@@ -3,7 +3,6 @@ import math
 import torch
 from torch import nn
 
-
 class Activation_Function_Class(nn.Module):
     """
     Implementation of various activation function.
@@ -137,13 +136,30 @@ class Adapter(nn.Module):
         if isinstance(module, nn.Linear) and module.bias is not None:
             module.bias.data.zero_()
 
+# pooh fusion
+class BertFusionPooler(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.activation = nn.Tanh()
+
+    def forward(self, hidden_states):
+        # We "pool" the model by simply taking the hidden state corresponding
+        # to the first token.
+        print("pooh BertFusionPooler hidden_states", hidden_states.shape)
+        first_token_tensor = hidden_states[:,:,0,:]
+        pooled_output = self.dense(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
+        print("pooh BertFusionPooler pooled_output", pooled_output.shape)
+        return pooled_output
 
 # Adapter Fusion
-
 
 class BertFusion(nn.Module):
     """
     Implementation of an AdapterFusion block.
+    This fusion is for select one adapter.
+    query, key = adapters' representation 
     """
 
     def __init__(self, config):
@@ -153,13 +169,13 @@ class BertFusion(nn.Module):
         #         "The hidden size (%d) is not a multiple of the number of attention "
         #         "heads (%d)" % (config.hidden_size, config.num_attention_heads))
         self.config = config
+        self.num_choices = len(self.config.label2id.keys())
         self.output_attentions = config.output_attentions
 
         self.dense_size = int(config.hidden_size)
-        self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
-        print("self.config", self.config)
-        print("self.config.adapter_fusion", self.config.adapter_fusion)
-        raise RuntimeError("pooh done")
+        # self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob) # pooh
+
 
         if (
             not self.config.adapter_fusion["query"]
@@ -176,13 +192,18 @@ class BertFusion(nn.Module):
             self.key = nn.Linear(self.dense_size, self.dense_size)
             self.key.apply(Adapter.init_bert_weights)
 
-        if self.config.adapter_fusion["value"]:
-            self.value = nn.Linear(int(config.hidden_size), int(config.hidden_size), bias=False)
-            self.value.apply(Adapter.init_bert_weights)
-            if self.config.adapter_fusion["value_initialized"]:
-                self.value.weight.data = (
-                    torch.zeros(int(config.hidden_size), int(config.hidden_size)) + 0.000001
-                ).fill_diagonal_(1.0)
+        # if self.config.adapter_fusion["value"]:
+        #     self.value = nn.Linear(int(config.hidden_size), int(config.hidden_size), bias=False)
+        #     self.value.apply(Adapter.init_bert_weights)
+        #     if self.config.adapter_fusion["value_initialized"]:
+        #         self.value.weight.data = (
+        #             torch.zeros(int(config.hidden_size), int(config.hidden_size)) + 0.000001
+        #         ).fill_diagonal_(1.0)
+        
+        if self.config.adapter_fusion["select"]:
+            self.pooler = BertFusionPooler(config)
+            self.select = nn.Linear(self.dense_size, 1)
+            self.select.apply(Adapter.init_bert_weights)
 
         if self.config.adapter_fusion["temperature"]:
             self.T = 50.0
@@ -205,14 +226,30 @@ class BertFusion(nn.Module):
         else:
             key_layer = key
 
-        # query + concat all candidates -> linear layer  
+        # pool each adapter cls token
+        pooled_output = self.pooler(query_layer)
+        pooled_output = self.dropout(pooled_output)
+        pooled_output = pooled_output.permute(1, 0, 2)
+        logits = self.select(pooled_output)
+        print("pooh logits", logits)
+        selected_adapter_index = torch.argmax(logits, dim=1)
+        ids = torch.eye(2)[selected_adapter_index,:].permute(0,2,1)
+        print("pooh selected_adapter_index", selected_adapter_index)
+        print("pooh key_layer shape",key_layer.shape)
+        key_layer= key_layer.permute(1,2,3,0)
+        context_layer = torch.matmul(key_layer,ids)
+        # key_layer[selected_adapter_index,:,:]
+        print("pooh context_layer shape", context_layer.shape)
 
+
+
+
+        # query + concat all candidates -> linear layer  
         # if self.config.adapter_fusion["value"] and self.config.adapter_fusion["value_before_softmax"]:
         #     # key/value have dims => batch, toks, number-of-adapters, feats
         #     value_layer = self.value(value)
         # else:
         #     value_layer = value
-
         # # Take the dot product between "query" and "key" to get the raw attention scores.
         # attention_scores = torch.squeeze(torch.matmul(query_layer.unsqueeze(2), key_layer.transpose(-2, -1)), dim=2)
 

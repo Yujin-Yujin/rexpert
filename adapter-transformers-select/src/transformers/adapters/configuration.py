@@ -299,7 +299,7 @@ def build_full_config(adapter_config, model_config, save_id2label=False, **kwarg
         config_dict["config"] = adapter_config
     return config_dict
 
-
+# pooh add select factor
 @dataclass
 class AdapterFusionConfig(Mapping):
     """Base class that models the architecture of an adapter fusion layer."""
@@ -307,6 +307,7 @@ class AdapterFusionConfig(Mapping):
     key: bool
     query: bool
     value: bool
+    select: bool
     query_before_ln: bool
     regularization: bool
     residual_before: bool
@@ -367,7 +368,7 @@ class AdapterFusionConfig(Mapping):
         config_dict.update(kwargs)
         return AdapterFusionConfig.from_dict(config_dict)
 
-
+# pooh add select factor
 @dataclass
 class StaticAdapterFusionConfig(AdapterFusionConfig):
     """
@@ -377,6 +378,7 @@ class StaticAdapterFusionConfig(AdapterFusionConfig):
     key: bool = True
     query: bool = True
     value: bool = False
+    select: bool = False
     query_before_ln: bool = False
     regularization: bool = False
     residual_before: bool = False
@@ -384,7 +386,7 @@ class StaticAdapterFusionConfig(AdapterFusionConfig):
     value_before_softmax: bool = True
     value_initialized: str = False
 
-
+# pooh add select factor
 @dataclass
 class DynamicAdapterFusionConfig(AdapterFusionConfig):
     """
@@ -395,6 +397,7 @@ class DynamicAdapterFusionConfig(AdapterFusionConfig):
     key: bool = True
     query: bool = True
     value: bool = True
+    select: bool = True
     query_before_ln: bool = False
     regularization: bool = True
     residual_before: bool = False

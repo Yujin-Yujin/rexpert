@@ -5,7 +5,7 @@ pip install .
 cd /home/yujin/r-expert/train_fusion/expert/select/scripts
 
 export CUDA_VISIBLE_DEVICES=1
-export DATASET=/home/yujin/r-expert/dataset/cwwv/10k
+export DATASET=/home/yujin/r-expert/dataset/atomic/small-test
 export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/r-expert/output/best/expert/adapters/full
 export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/select
 export BATCH=8
@@ -13,7 +13,7 @@ export BEST_MODEL_PATH=/home/yujin/r-expert/output/best/expert/fusions
 
 export ADAPTER_NAMES=atomic,cwwv
 python ../run_multiple_choice.py \
-    --task_name csqa \
+    --task_name atomic \
     --model_name_or_path roberta-large \
     --pretrained_adapter_names $ADAPTER_NAMES \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \

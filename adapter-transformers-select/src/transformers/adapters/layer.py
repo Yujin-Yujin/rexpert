@@ -210,10 +210,18 @@ class AdapterLayerBaseMixin(ABC):
 
         if len(up_list) > 0:
             up_list = torch.stack(up_list)
-            up_list = up_list.permute(1, 2, 0, 3)
+            # pooh uplist shape = [num_adapter, answer_option_num * batch_size, max_seq_length, hidden_state_size]
+
+            # up_list = up_list.permute(1, 2, 0, 3)
+            # hidden_states = self.adapter_fusion_layer[adapter_setup.name](
+            #     query,
+            #     up_list,
+            #     up_list,
+            #     residual,
+            # )
 
             hidden_states = self.adapter_fusion_layer[adapter_setup.name](
-                query,
+                up_list,
                 up_list,
                 up_list,
                 residual,
