@@ -2007,6 +2007,7 @@ class Trainer:
 
         # Gather all remaining tensors and put them back on the CPU
         eval_losses_gatherer.add_arrays(self._gather_and_numpify(losses_host, "eval_losses"))
+
         if not prediction_loss_only:
             preds_gatherer.add_arrays(self._gather_and_numpify(preds_host, "eval_preds"))
             labels_gatherer.add_arrays(self._gather_and_numpify(labels_host, "eval_label_ids"))
@@ -2038,6 +2039,7 @@ class Trainer:
         Gather value of `tensors` (tensor or list/tuple of nested tensors) and convert them to numpy before
         concatenating them to `gathered`
         """
+
         if tensors is None:
             return
         if is_torch_tpu_available():
@@ -2120,7 +2122,8 @@ class Trainer:
                     loss, outputs = self.compute_loss(model, inputs, return_outputs=True)
                     loss = loss.mean().detach()
                     if isinstance(outputs, dict):
-                        logits = tuple(v for k, v in outputs.items() if k not in ignore_keys + ["loss"])
+                        # pooh changed ["loss"] to ["loss","hidden_states"]
+                        logits = tuple(v for k, v in outputs.items() if k not in ignore_keys + ["loss", "hidden_states"])
                     else:
                         logits = outputs[1:]
                 else:

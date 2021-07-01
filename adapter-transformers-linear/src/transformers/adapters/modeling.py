@@ -186,7 +186,6 @@ class BertFusion(nn.Module):
         else:
             self.T = 1.0
         self.reduction = self.T / 1000.0
-        print("linear fusion")
 
     def forward(self, query, key, value, residual):
 

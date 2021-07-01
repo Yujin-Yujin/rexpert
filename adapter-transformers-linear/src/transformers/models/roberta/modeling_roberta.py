@@ -1320,8 +1320,8 @@ class RobertaForMultipleChoice(ModelWithHeadsAdaptersMixin, RobertaPreTrainedMod
 
     def __init__(self, config):
         super().__init__(config)
-
         self.roberta = RobertaModel(config)
+
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier = nn.Linear(config.hidden_size, 1)
 
@@ -1379,6 +1379,7 @@ class RobertaForMultipleChoice(ModelWithHeadsAdaptersMixin, RobertaPreTrainedMod
             return_dict=return_dict,
             adapter_names=adapter_names,
         )
+
         pooled_output = outputs[1]
 
         pooled_output = self.dropout(pooled_output)
@@ -1394,12 +1395,15 @@ class RobertaForMultipleChoice(ModelWithHeadsAdaptersMixin, RobertaPreTrainedMod
             output = (reshaped_logits,) + outputs[2:]
             return ((loss,) + output) if loss is not None else output
 
+        # pooh changed hideen_states to pooled_output(last_hidden_state)
         return MultipleChoiceModelOutput(
             loss=loss,
             logits=reshaped_logits,
-            hidden_states=outputs.hidden_states,
+            hidden_states=pooled_output,
             attentions=outputs.attentions,
         )
+
+
 
 
 @add_start_docstrings(
