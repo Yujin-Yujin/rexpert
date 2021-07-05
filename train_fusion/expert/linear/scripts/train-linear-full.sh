@@ -4,15 +4,15 @@
 # pip install .
 
 # cd ../train_fusion/expert/linear/scripts
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=3
 export DATASET=../../../../dataset/multikg/10k
 export PRETRAINED_ADAPTER_DIR_PATH=../../../../output/best/expert/adapters/full
-export OUTPUT_DIR=../../../../output/expert/fusions/linear/10k
+export OUTPUT_DIR=../../../../output/expert/fusions/linear-full/10k
 export BATCH=8
 export BEST_MODEL_PATH=../../../../output/best/expert/fusions/linear
 
 export ADAPTER_NAMES=atomic,cwwv
-python ../run_multiple_choice.py \
+python ../run_multiple_choice_full_linear.py \
     --task_name multikg \
     --model_name_or_path roberta-large \
     --adapter_names $ADAPTER_NAMES \

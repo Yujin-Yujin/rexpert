@@ -4,24 +4,28 @@
 # pip install .
 
 # cd ../train_fusion/expert/linear/scripts
-export CUDA_VISIBLE_DEVICES=2
-export DATASET=../../../../dataset/multikg/10k
+export CUDA_VISIBLE_DEVICES=3
+export DATASET=../../../../dataset/socialiqa/origin
+# export DATASET=../../../../dataset/commonsense/origin
+# export DATASET=../../../../dataset/atomic/full
 export PRETRAINED_ADAPTER_DIR_PATH=../../../../output/best/expert/adapters/full
-export OUTPUT_DIR=../../../../output/expert/fusions/linear/10k
+export OUTPUT_DIR=../../../../output/expert/fusions/linear
 export BATCH=8
 export BEST_MODEL_PATH=../../../../output/best/expert/fusions/linear
+export LINEAR_MODEL_PATH=../../../../output/expert/fusions/linear-full/10k/atomic,cwwv/pytorch_model.bin
 
 export ADAPTER_NAMES=atomic,cwwv
-python ../run_multiple_choice.py \
-    --task_name multikg \
+python ../inference-with-linear-full.py \
+    --task_name siqa \
     --model_name_or_path roberta-large \
+    --linear_model_path $LINEAR_MODEL_PATH \
     --adapter_names $ADAPTER_NAMES \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \
     --wandb_project "fusion-linear" \
     --wandb_entity "rexpert" \
     --wandb_name "fusion-$ADAPTER_NAMES" \
-    --do_train \
     --do_eval \
+    --do_predict \
     --seed 42 \
     --data_dir $DATASET \
     --best_model_path $BEST_MODEL_PATH \

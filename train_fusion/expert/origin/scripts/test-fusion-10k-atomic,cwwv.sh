@@ -1,13 +1,14 @@
 export CUDA_VISIBLE_DEVICES=1
 export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/r-expert/output/best/expert/adapters/full
-export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/full
+# export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/full
+export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/blend/10k/atomic,cwwv
 export BATCH=8
 export BEST_MODEL_PATH=/home/yujin/r-expert/output/best/expert/fusions/10k
-export PRETRAINED_FUSION_PATH=/home/yujin/r-expert/output/expert/fusions/atomic,cwwv
-export TASK_NAME=siqa
-export DATASET=/home/yujin/r-expert/dataset/socialiqa/origin
-# export TASK_NAME=csqa
-# export DATASET=/home/yujin/r-expert/dataset/commonsense/origin
+export PRETRAINED_FUSION_PATH=/home/yujin/r-expert/output/expert/fusions/blend/10k/atomic,cwwv
+# export TASK_NAME=siqa
+# export DATASET=/home/yujin/r-expert/dataset/socialiqa/origin
+export TASK_NAME=csqa
+export DATASET=/home/yujin/r-expert/dataset/commonsense/origin
 
 export ADAPTER_NAMES=atomic,cwwv
 python ../run_multiple_choice.py \
@@ -20,7 +21,7 @@ python ../run_multiple_choice.py \
     --wandb_name "fusion-$ADAPTER_NAMES-test" \
     --fusion_path $PRETRAINED_FUSION_PATH/$ADAPTER_NAMES \
     --test_fusion \
-    --do_predict \
+    --do_eval \
     --seed 42 \
     --data_dir $DATASET \
     --learning_rate 5e-5 \

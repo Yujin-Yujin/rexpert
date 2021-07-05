@@ -53,7 +53,6 @@ logger = logging.getLogger(__name__)
 
 
 def simple_accuracy(preds, labels):
-
     return (preds == labels).mean()
 
 
@@ -114,7 +113,6 @@ class DataTrainingArguments:
         default=False, metadata={"help": "select best fusion model"}
     )
     adapter_names: Optional[str] = field(default=None, metadata={"help": "list of pretrained adapter names"})
-    linear_model_path: Optional[str] = field(default=None, metadata={"help": "linear model path"})
 
 
 @dataclass
@@ -141,6 +139,7 @@ class FusionArguments:
     fusion_attention_supervision: bool = field(
         default=False, metadata={"help": "test fusion. default is false."}
     )
+
 class LinearFusion(nn.Module):
     def __init__(self, config, training_args, data_args, model_args, fusion_args, num_labels):
         super().__init__()      
@@ -220,95 +219,37 @@ class LinearFusion(nn.Module):
             hidden_states = raw_outputs.hidden_states
             sub_model_hidden_states.append(hidden_states)
 
-        adapter_hidden_states = torch.stack(sub_model_hidden_states).view(len(self.sub_model_list), -1, self.num_labels, self.dense_size).sum(2)
-        adapter_hidden_states = adapter_hidden_states.permute(1,0,2)
-        adapter_results = []
+        adapter_hidden_states = []
 
-        for i, x in enumerate(adapter_hidden_states):
-            adapter_results.append(x)
-        adapter_results = torch.stack(adapter_results).view(-1,1024)
-        
-        pooled_output = self.dropout(adapter_results)
+        for i, x in enumerate(sub_model_hidden_states[0]):
+            for j in range(len(sub_model_hidden_states)):
+                adapter_hidden_states.append(sub_model_hidden_states[j][i])
+
+        adapter_hidden_states = torch.stack(adapter_hidden_states)
+        pooled_output = self.dropout(adapter_hidden_states)
         logits = self.classifier(pooled_output)
         reshaped_logits = logits.view(-1, len(self.sub_model_list))
+        
+        labels = labels.expand(self.num_labels,labels.shape[0]).permute(1,0).reshape(-1)
+
+        # adapter_hidden_states = adapter_hidden_states.permute(1,0,2)
+        # adapter_results = []
+
+        # for i, x in enumerate(adapter_hidden_states):
+        #     adapter_results.append(x)
+        # adapter_results = torch.stack(adapter_results).view(-1,1024)
+
+        # evaluate adaptere selection
+        a_logits = torch.argmax(reshaped_logits,dim=1).view(-1,self.num_labels).mode()
 
         loss = None
         if labels is not None:
             loss_fct = CrossEntropyLoss()
             loss = loss_fct(reshaped_logits, labels)
         
-        return {"loss": loss, "logits":reshaped_logits, "sub_model_hidden_states":sub_model_hidden_states}
+        # return {"loss": loss, "logits":a_logits, "total_logits":reshaped_logits}
+        return {"loss": loss, "logits":a_logits}
 
-class MultipleChoicewithLinearFusion(nn.Module):
-    def __init__(self, config, training_args, data_args, model_args, fusion_args, num_labels, linear_model):
-        super().__init__()      
-        self.config = config
-        self.dense_size = config.hidden_size
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size, 1)
-        self.num_labels = num_labels
-        self.device = training_args.device
-        self.linear_model = linear_model
-        self.adapter_name_list = data_args.adapter_names.split(',')
-
-        
-        # pooh initialize is needed?
-        # self.init_weights()
-
-        # load sub models
-        # get adapter names
-        print("adapter_names", data_args.adapter_names)
-
-    def forward(
-        self,
-        input_ids=None,
-        token_type_ids=None,
-        attention_mask=None,
-        labels=None,
-        position_ids=None,
-        head_mask=None,
-        inputs_embeds=None,
-        output_attentions=None,
-        output_hidden_states=None,
-        return_dict=None,
-        adapter_names=None,
-    ):
-        # get predict
-        self.linear_model.eval()
-        linear_output = self.linear_model(input_ids,
-                                            token_type_ids,
-                                            attention_mask,
-                                            position_ids,
-                                            head_mask,
-                                            inputs_embeds,
-                                            output_attentions,
-                                            output_hidden_states,
-                                            return_dict,
-                                            adapter_names,)
-        selected_adapter = torch.argmax(linear_output['logits'], dim=1)
-        sub_model_hidden_states = linear_output['sub_model_hidden_states']
-        sub_model_hidden_states = torch.stack(sub_model_hidden_states).view(len(self.adapter_name_list), -1, self.num_labels, self.dense_size)
-        sub_model_hidden_states = sub_model_hidden_states.permute(1,0,2,3)
-        
-        selected_representation = []
-        for i, x in enumerate(sub_model_hidden_states):
-            selected_representation.append(x[selected_adapter[i], :,:])
-
-        selected_representation = torch.stack(selected_representation).view(-1, 1, self.dense_size).squeeze(1)
-
-        pooled_output = self.dropout(selected_representation)
-        logits = self.classifier(pooled_output)
-        reshaped_logits = logits.view(-1, self.num_labels)
-
-        loss = None
-        if labels is not None:
-            loss_fct = CrossEntropyLoss()
-            loss = loss_fct(reshaped_logits, labels)
-
-        return {
-                    "loss" : loss,
-                    "logits" : reshaped_logits,
-                }
 
 def main():
     # See all possible arguments in src/transformers/training_args.py
@@ -375,26 +316,20 @@ def main():
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         )
-    linear_model = LinearFusion(config, 
+    model = LinearFusion(config, 
                         training_args=training_args,
                         data_args=data_args, 
                         model_args=model_args, 
                         fusion_args=fusion_args, 
                         num_labels=num_labels)
-    linear_model.load_state_dict(torch.load(data_args.linear_model_path))
-    linear_model.eval()
 
-    model = MultipleChoicewithLinearFusion(config, 
-                        training_args=training_args,
-                        data_args=data_args, 
-                        model_args=model_args, 
-                        fusion_args=fusion_args, 
-                        num_labels=num_labels,
-                        linear_model=linear_model
-    )
-
+    # def compute_metrics(p: EvalPrediction) -> Dict:
+    #     preds = np.argmax(p.predictions, axis=1)
+    #     return {"acc": simple_accuracy(preds, p.label_ids)}
+    
     def compute_metrics(p: EvalPrediction) -> Dict:
-        preds = np.argmax(p.predictions, axis=1)
+        preds = p.predictions.values
+        # preds = np.argmax(p.predictions, axis=1)
         return {"acc": simple_accuracy(preds, p.label_ids)}
 
     
@@ -402,7 +337,30 @@ def main():
         print(n, p.requires_grad)
 
     adapter_names = [data_args.adapter_names.split(',')]
-
+    # load sub_models
+    sub_model_list = []
+    for adapter_name in adapter_names[0]:
+        config = AutoConfig.from_pretrained(
+                model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+                num_labels=num_labels,
+                finetuning_task=data_args.task_name,
+                cache_dir=model_args.cache_dir,
+            )
+        tokenizer = AutoTokenizer.from_pretrained(
+                model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+                cache_dir=model_args.cache_dir,
+                )
+        sub_model = AutoModelForMultipleChoice.from_pretrained(
+                model_args.model_name_or_path,
+                from_tf=bool(".ckpt" in model_args.model_name_or_path),
+                config=config,
+                cache_dir=model_args.cache_dir,
+            )
+        adapter_path = os.path.join(fusion_args.pretrained_adapter_dir_path, adapter_name)
+        adapter = sub_model.load_adapter(adapter_path)
+        sub_model.set_active_adapters(adapter)
+        sub_model.to(training_args.device)
+        sub_model_list.append(sub_model) 
 
     # Get datasets
     train_dataset = (
@@ -413,6 +371,8 @@ def main():
             max_seq_length=data_args.max_seq_length,
             overwrite_cache=data_args.overwrite_cache,
             mode=Split.train,
+            adapter_names=data_args.adapter_names,
+            sub_model_list=sub_model_list
         )
         if training_args.do_train or data_args.do_select
         else None
@@ -425,8 +385,10 @@ def main():
             max_seq_length=data_args.max_seq_length,
             overwrite_cache=data_args.overwrite_cache,
             mode=Split.dev,
+            adapter_names=data_args.adapter_names,
+            sub_model_list=sub_model_list
         )
-        if training_args.do_eval or data_args.do_select 
+        if training_args.do_train or data_args.do_select 
         else None
     )
 

@@ -28,12 +28,8 @@ from typing import List, Optional
 import tqdm
 
 from filelock import FileLock
-from transformers import PreTrainedTokenizer, is_tf_available, is_torch_available, EvalPrediction, Trainer
+from transformers import PreTrainedTokenizer, is_tf_available, is_torch_available
 import uuid
-
-import numpy as np
-import torch.nn as nn
-import random
 
 logger = logging.getLogger(__name__)
 
@@ -60,19 +56,6 @@ class InputExample:
 
 @dataclass(frozen=True)
 class InputFeatures:
-    """
-    A single set of features of data.
-    Property names are the same names as the corresponding inputs to a model.
-    """
-
-    example_id: str
-    input_ids: List[List[int]]
-    attention_mask: Optional[List[List[int]]]
-    token_type_ids: Optional[List[List[int]]]
-    label: Optional[int]
-
-@dataclass(frozen=True)
-class InputClassifierFeatures:
     """
     A single set of features of data.
     Property names are the same names as the corresponding inputs to a model.
@@ -111,8 +94,6 @@ if is_torch_available():
             max_seq_length: Optional[int] = None,
             overwrite_cache=False,
             mode: Split = Split.train,
-            adapter_names: Optional[str] = None,
-            sub_model_list = None
         ):
             processor = processors[task]()
 
@@ -126,86 +107,32 @@ if is_torch_available():
                 ),
             )
 
-            if sub_model_list is not None and adapter_names is not None:
-                cached_classifier_features_file = os.path.join(
-                    data_dir,
-                    "cached_{}_{}_{}_{}_{}_adapter_classifier_label".format(
-                        mode.value,
-                        tokenizer.__class__.__name__,
-                        str(max_seq_length),
-                        task,
-                        adapter_names,
-                    ),
-                )
-
             # Make sure only the first process in distributed training processes the dataset,
             # and the others will use the cache.
-            if sub_model_list is None:
-                lock_path = cached_features_file + ".lock"
-                with FileLock(lock_path):
+            lock_path = cached_features_file + ".lock"
+            with FileLock(lock_path):
 
-                    if os.path.exists(cached_features_file) and not overwrite_cache:
-                        logger.info(f"Loading features from cached file {cached_features_file}")
-                        self.features = torch.load(cached_features_file)
+                if os.path.exists(cached_features_file) and not overwrite_cache:
+                    logger.info(f"Loading features from cached file {cached_features_file}")
+                    self.features = torch.load(cached_features_file)
+                else:
+                    logger.info(f"Creating features from dataset file at {data_dir}")
+                    label_list = processor.get_labels()
+                    if mode == Split.dev:
+                        examples = processor.get_dev_examples(data_dir)
+                    elif mode == Split.test:
+                        examples = processor.get_test_examples(data_dir)
                     else:
-                        logger.info(f"Creating features from dataset file at {data_dir}")
-                        label_list = processor.get_labels()
-                        if mode == Split.dev:
-                            examples = processor.get_dev_examples(data_dir)
-                        elif mode == Split.test:
-                            examples = processor.get_test_examples(data_dir)
-                        else:
-                            examples = processor.get_train_examples(data_dir)
-                        logger.info("Training examples: %s", len(examples))
-                        self.features = convert_examples_to_features(
-                            examples,
-                            label_list,
-                            max_seq_length,
-                            tokenizer,
-                        )
-                        logger.info("Saving features into cached file %s", cached_features_file)
-                        torch.save(self.features, cached_features_file)
-            else:
-                classifier_lock_path = cached_classifier_features_file + ".lock"
-                with FileLock(classifier_lock_path):
-                    if os.path.exists(cached_classifier_features_file) and not overwrite_cache:
-                        logger.info(f"Loading features from cached file {cached_classifier_features_file}")
-                        self.features = torch.load(cached_classifier_features_file)
-                    else:
-                        lock_path = cached_features_file + ".lock"
-                        with FileLock(lock_path):
-                            if os.path.exists(cached_features_file) and not overwrite_cache:
-                                logger.info(f"Loading features from cached file {cached_features_file}")
-                                self.features = torch.load(cached_features_file)
-                            else:
-                                logger.info(f"Creating features from dataset file at {data_dir}")
-                                label_list = processor.get_labels()
-                                if mode == Split.dev:
-                                    examples = processor.get_dev_examples(data_dir)
-                                elif mode == Split.test:
-                                    examples = processor.get_test_examples(data_dir)
-                                else:
-                                    examples = processor.get_train_examples(data_dir)
-
-                                logger.info("Training examples: %s", len(examples))
-                                self.features = convert_examples_to_features(
-                                    examples,
-                                    label_list,
-                                    max_seq_length,
-                                    tokenizer,
-                                )
-                                logger.info("Saving features into cached file %s", cached_features_file)
-                                torch.save(self.features, cached_features_file)
-
-                        logger.info("Training classifier features: %s", len(self.features))
-
-                        self.features = convert_examples_to_classifier_features(
-                            self.features,
-                            sub_model_list
-                        )
-
-                        logger.info("Saving classifier features into cached file %s", cached_classifier_features_file)
-                        torch.save(self.features, cached_classifier_features_file)
+                        examples = processor.get_train_examples(data_dir)
+                    logger.info("Training examples: %s", len(examples))
+                    self.features = convert_examples_to_features(
+                        examples,
+                        label_list,
+                        max_seq_length,
+                        tokenizer,
+                    )
+                    logger.info("Saving features into cached file %s", cached_features_file)
+                    torch.save(self.features, cached_features_file)
 
         def __len__(self):
             return len(self.features)
@@ -653,7 +580,7 @@ class ATOMICProcessor(DataProcessor):
             data_raw = json.loads(line.strip("\n"))
             examples.append(
                 InputExample(
-                example_id= str(data_raw["id"]),
+                example_id= data_raw['id'],
                 question="",  
                 contexts=[data_raw['context'], data_raw['context'], data_raw['context']],
                 endings=[data_raw['candidates'][0], data_raw['candidates'][1], data_raw['candidates'][2]],
@@ -722,6 +649,7 @@ class CommonsenseqaProcessor(DataProcessor):
 
         return examples
 
+
 class KGProcessor(DataProcessor):
     """Processor for the SocialIQA data set from YJ."""
 
@@ -777,6 +705,50 @@ class KGProcessor(DataProcessor):
                     label=data_raw['correct'],
                     )
                 )
+
+        return examples
+
+class BlendProcessor(DataProcessor):
+    """Processor for the SocialIQA data set from YJ."""
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        logger.info("LOOKING AT {} train".format(data_dir))
+        return self._create_examples(self._read_json(os.path.join(data_dir, "train.jsonl")), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        logger.info("LOOKING AT {} dev".format(data_dir))
+        return self._create_examples(self._read_json(os.path.join(data_dir, "dev.jsonl")), "dev")
+
+    def get_test_examples(self, data_dir):
+        logger.info("LOOKING AT {} test".format(data_dir))
+        return self._create_examples(self._read_json(os.path.join(data_dir, "test.jsonl")), "test")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1", "2"]
+
+    def _read_json(self, input_file):
+        with open(input_file, "r", encoding="utf-8") as fin:
+            lines = fin.readlines()
+            return lines
+            
+    def _create_examples(self, lines, type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+
+        for line in tqdm.tqdm(lines, desc="read blend data"):
+            data_raw = json.loads(line.strip("\n"))
+            examples.append(
+                InputExample(
+                example_id= str(uuid.uuid1),
+                question="",  
+                contexts=[data_raw['context'], data_raw['context'], data_raw['context']],
+                endings=[data_raw['candidates'][0], data_raw['candidates'][1], data_raw['candidates'][2]],
+                label=data_raw['correct'],
+                )
+            )
 
         return examples
 
@@ -851,92 +823,6 @@ def convert_examples_to_features(
 
     return features
 
-def simple_accuracy(preds, labels):
-    return (preds == labels).mean()
-
-def compute_metrics(p: EvalPrediction):
-    preds = np.argmax(p.predictions, axis=1)
-    return {"acc": simple_accuracy(preds, p.label_ids)}
-
-def convert_examples_to_classifier_features(
-    example_features: List[InputFeatures],
-    sub_model_list
-) -> List[InputClassifierFeatures]:
-    classifier_features=[]
-    sub_model_logits = []
-    origin_labels = None
-    for sub_model in sub_model_list:
-        trainer = Trainer(
-            model=sub_model,
-            compute_metrics=compute_metrics,
-        )
-        predictions, label_ids, metrics = trainer.predict(example_features)
-
-        logits = torch.from_numpy(predictions)
-
-        labels = torch.from_numpy(label_ids)
-        sub_model_logits.append(logits)
-
-        if origin_labels is not None:
-            assert (torch.equal(origin_labels, labels)), "labels between sub models are different."
-        origin_labels = labels
-    
-    adapter_labels=[]
-    for i in range(len(sub_model_logits[0])):
-        answer_index = (-1,0)
-        for j in range(len(sub_model_logits)):
-            # correctness check
-            answer_candi_index = torch.argmax(sub_model_logits[j][i])
-            if answer_candi_index == labels[i]:
-                correct_prob = nn.Softmax(dim=0)(sub_model_logits[j][i])
-                if correct_prob[answer_candi_index] > answer_index[1]:
-                    answer_index = (j, sub_model_logits[j][i][answer_candi_index])
-                elif correct_prob[answer_candi_index] == answer_index[1] and answer_index[1] != 0:
-                    answer_index = (random.choice([answer_index[0], j]), answer_index[1])
-        if answer_index[0] == -1:
-            answer_index = (random.choice(range(len(sub_model_logits))),)
-        adapter_labels.append(answer_index[0])
-
-    adapter_labels = torch.tensor(adapter_labels)
-
-    # stack_all = torch.stack(logit_list)
-    # classifier_label_list = []
-    # for i in range(stack_all.shape[1]):
-    #     answer_index = None
-    #     best_var = 0
-    #     for j in range(stack_all.shape[0]):
-    #         if torch.argmax(stack_all[j][i], dim=-1) == c_labels[i].item():
-    #             if torch.std(stack_all[j][i]).item() > best_var:
-    #                 best_var = torch.std(stack_all[j][i]).item()
-    #                 answer_index = j
-    
-    #     classifier_label_list.append(answer_index)
-
-    # classifier_label = []
-    # for answer_label in classifier_label_list:
-    #     exp_label = []
-    #     for choice in range(stack_all.shape[0]):
-    #         if answer_label == choice:
-    #             exp_label.append(1)
-    #         else:
-    #             exp_label.append(0)
-    #     classifier_label.append(exp_label)
-    for (ex_f_idx, example_feature) in tqdm.tqdm(enumerate(example_features), desc="convert features to classifier features"):
-        classifier_features.append(
-            InputClassifierFeatures(
-                example_id=example_feature.example_id,
-                input_ids=example_feature.input_ids,
-                attention_mask=example_feature.attention_mask,
-                token_type_ids=example_feature.token_type_ids,
-                label=adapter_labels[ex_f_idx].item()
-            )
-        )
-        
-    for f in classifier_features[:2]:
-        logger.info("*** Example ***")
-        logger.info("classifier_features: %s" % f)
-    
-    return classifier_features
 
 processors = {
                 "race": RaceProcessor, 
@@ -946,6 +832,6 @@ processors = {
                 "siqa":SocialIQAProcessor, 
                 "atomic":ATOMICProcessor, 
                 "csqa":CommonsenseqaProcessor,
-                "multikg": KGProcessor}
+                "multikg": KGProcessor,
+                "blend": BlendProcessor}
 # MULTIPLE_CHOICE_TASKS_NUM_LABELS = {"race", 4, "swag", 4, "arc", 4, "syn", 5}
-

@@ -141,6 +141,7 @@ class FusionArguments:
     fusion_attention_supervision: bool = field(
         default=False, metadata={"help": "test fusion. default is false."}
     )
+
 class LinearFusion(nn.Module):
     def __init__(self, config, training_args, data_args, model_args, fusion_args, num_labels):
         super().__init__()      
@@ -220,24 +221,37 @@ class LinearFusion(nn.Module):
             hidden_states = raw_outputs.hidden_states
             sub_model_hidden_states.append(hidden_states)
 
-        adapter_hidden_states = torch.stack(sub_model_hidden_states).view(len(self.sub_model_list), -1, self.num_labels, self.dense_size).sum(2)
-        adapter_hidden_states = adapter_hidden_states.permute(1,0,2)
-        adapter_results = []
+        adapter_hidden_states = []
 
-        for i, x in enumerate(adapter_hidden_states):
-            adapter_results.append(x)
-        adapter_results = torch.stack(adapter_results).view(-1,1024)
-        
-        pooled_output = self.dropout(adapter_results)
+        for i, x in enumerate(sub_model_hidden_states[0]):
+            for j in range(len(sub_model_hidden_states)):
+                adapter_hidden_states.append(sub_model_hidden_states[j][i])
+
+        adapter_hidden_states = torch.stack(adapter_hidden_states)
+        pooled_output = self.dropout(adapter_hidden_states)
         logits = self.classifier(pooled_output)
         reshaped_logits = logits.view(-1, len(self.sub_model_list))
+        
+
+        # adapter_hidden_states = adapter_hidden_states.permute(1,0,2)
+        # adapter_results = []
+
+        # for i, x in enumerate(adapter_hidden_states):
+        #     adapter_results.append(x)
+        # adapter_results = torch.stack(adapter_results).view(-1,1024)
+
+        # evaluate adaptere selection
+        a_logits = torch.argmax(reshaped_logits,dim=1).view(-1,self.num_labels).mode()
 
         loss = None
         if labels is not None:
+            labels = labels.expand(self.num_labels,labels.shape[0]).permute(1,0).reshape(-1)
+
             loss_fct = CrossEntropyLoss()
             loss = loss_fct(reshaped_logits, labels)
         
-        return {"loss": loss, "logits":reshaped_logits, "sub_model_hidden_states":sub_model_hidden_states}
+        # return {"loss": loss, "logits":a_logits, "total_logits":reshaped_logits}
+        return {"loss": loss, "logits":a_logits, "sub_model_hidden_states":sub_model_hidden_states}
 
 class MultipleChoicewithLinearFusion(nn.Module):
     def __init__(self, config, training_args, data_args, model_args, fusion_args, num_labels, linear_model):
@@ -285,7 +299,7 @@ class MultipleChoicewithLinearFusion(nn.Module):
                                             output_hidden_states,
                                             return_dict,
                                             adapter_names,)
-        selected_adapter = torch.argmax(linear_output['logits'], dim=1)
+        selected_adapter = linear_output['logits'].values
         sub_model_hidden_states = linear_output['sub_model_hidden_states']
         sub_model_hidden_states = torch.stack(sub_model_hidden_states).view(len(self.adapter_name_list), -1, self.num_labels, self.dense_size)
         sub_model_hidden_states = sub_model_hidden_states.permute(1,0,2,3)

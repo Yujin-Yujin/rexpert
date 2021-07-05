@@ -4,17 +4,22 @@
 # pip install .
 
 # cd ../train_fusion/expert/linear/scripts
-export CUDA_VISIBLE_DEVICES=2
-export DATASET=../../../../dataset/socialiqa/origin
+export CUDA_VISIBLE_DEVICES=3
+# export DATASET=../../../../dataset/socialiqa/origin
+export DATASET=../../../../dataset/commonsense/origin
+# export DATASET=../../../../dataset/atomic/full
 export PRETRAINED_ADAPTER_DIR_PATH=../../../../output/best/expert/adapters/full
 export OUTPUT_DIR=../../../../output/expert/fusions/linear
 export BATCH=8
 export BEST_MODEL_PATH=../../../../output/best/expert/fusions/linear
+export LINEAR_MODEL_PATH=../../../../output/expert/fusions/linear-full/10k/atomic,cwwv/pytorch_model.bin
+
 
 export ADAPTER_NAMES=atomic,cwwv
 python ../inference-with-linear.py \
-    --task_name siqa \
+    --task_name csqa \
     --model_name_or_path roberta-large \
+    --linear_model_path $LINEAR_MODEL_PATH \
     --adapter_names $ADAPTER_NAMES \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \
     --wandb_project "fusion-linear" \
