@@ -3,10 +3,10 @@ from tqdm import tqdm
 import random
 import json
 
-atomic_dataset_path = ["/home/yujin/r-expert/dataset/atomic/full/train_random.jsonl","/home/yujin/r-expert/dataset/atomic/full/dev_random.jsonl"]
+atomic_dataset_path = ["/home/yujin/rexpert/dataset/kg-dataset/atomic/train_random.jsonl","/home/yujin/rexpert/dataset/kg-dataset/atomic/dev_random.jsonl"]
 # atomic_dataset_path = ["/home/yujin/r-expert/dataset/atomic/small-test/train_random.jsonl","/home/yujin/r-expert/dataset/atomic/small-test/dev_random.jsonl"]
-cwwv_dataset_path = ["/home/yujin/r-expert/dataset/cwwv/full/train_rand_split.jsonl","/home/yujin/r-expert/dataset/cwwv/full/dev_rand_split.jsonl"]
-output_path = ["/home/yujin/r-expert/dataset/blended/full/train.jsonl","/home/yujin/r-expert/dataset/blended/full/dev.jsonl"]
+cwwv_dataset_path = ["/home/yujin/rexpert/dataset/kg-dataset/cwwv/train_random.jsonl","/home/yujin/rexpert/dataset/kg-dataset/cwwv/dev_random.jsonl"]
+output_path = ["/home/yujin/rexpert/dataset/blend/train_random.jsonl","/home/yujin/rexpert/dataset/blend/dev_random.jsonl"]
 
 def cwwv_convert(example):
     example = json.loads(example.strip("\n"))
