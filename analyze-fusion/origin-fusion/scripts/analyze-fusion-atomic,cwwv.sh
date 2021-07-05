@@ -1,8 +1,9 @@
 export CUDA_VISIBLE_DEVICES=0
 export DATASET=/home/yujin/rexpert/dataset/kg-dataset/small
 export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/rexpert/output/best/adapters/full
-export OUTPUT_DIR=/home/yujin/rexpert/output/fusions/small
+export OUTPUT_DIR=/home/yujin/rexpert/output/analysis
 export BATCH=8
+export PRETRAINED_FUSION_LAYER=
 
 export ADAPTER_NAMES=atomic,cwwv
 python ../run_multiple_choice_custom.py \
@@ -10,11 +11,11 @@ python ../run_multiple_choice_custom.py \
     --model_name_or_path roberta-large \
     --pretrained_adapter_names $ADAPTER_NAMES \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \
-    --wandb_project "fusion-contrastive" \
+    --wandb_project "fusion-analysis" \
     --wandb_entity "rexpert" \
-    --wandb_name "fusion-$ADAPTER_NAMES-test" \
-    --train_fusion \
-    --do_train \
+    --wandb_name "fusion-$ADAPTER_NAMES" \
+    --test_fusion \
+    --do_eval \
     --seed 42 \
     --data_dir $DATASET \
     --learning_rate 5e-5 \

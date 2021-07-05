@@ -1,24 +1,24 @@
-cd /home/yujin/r-expert/adapter-transformers
+cd /home/yujin/rexpert/adapter-transformers
 
 pip install .
 
-cd /home/yujin/r-expert/train_fusion/expert/origin/scripts
+cd /home/yujin/rexpert/train_fusion/expert/origin/scripts
 
 
-export CUDA_VISIBLE_DEVICES=2
-export DATASET=/home/yujin/r-expert/dataset/blended/full
-export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/r-expert/output/best/expert/adapters/full
-export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/blend/full
+export CUDA_VISIBLE_DEVICES=4
+export DATASET=/home/yujin/rexpert/dataset/kg-dataset/multikg
+export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/rexpert/output/best/adapters/full
+export OUTPUT_DIR=/home/yujin/rexpert/output/fusions/full
 export BATCH=8
-export BEST_MODEL_PATH=/home/yujin/r-expert/output/best/expert/fusions/blended
+export BEST_MODEL_PATH=/home/yujin/rexpert/output/best/fusions/full
 
 export ADAPTER_NAMES=atomic,cwwv
 python ../run_multiple_choice.py \
-    --task_name blend \
+    --task_name multikg \
     --model_name_or_path roberta-large \
     --pretrained_adapter_names $ADAPTER_NAMES \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \
-    --wandb_project "fusion-blend" \
+    --wandb_project "fusion-multikg" \
     --wandb_entity "rexpert" \
     --wandb_name "fusion-$ADAPTER_NAMES-full" \
     --train_fusion \

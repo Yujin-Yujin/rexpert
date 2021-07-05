@@ -325,7 +325,6 @@ def main():
         if training_args.do_eval or data_args.do_select or training_args.do_train
         else None
     )
-    print("fusion_args.train_fusion", fusion_args.train_fusion)
 
     test_dataset = (
     MultipleChoiceDataset(
