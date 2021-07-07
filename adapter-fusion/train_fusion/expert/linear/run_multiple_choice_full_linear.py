@@ -336,6 +336,8 @@ def main():
     for (n,p) in model.named_parameters():
         print(n, p.requires_grad)
 
+    raise RuntimeError("pooh")
+
     adapter_names = [data_args.adapter_names.split(',')]
     # load sub_models
     sub_model_list = []

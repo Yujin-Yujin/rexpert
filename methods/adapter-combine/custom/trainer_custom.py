@@ -1171,12 +1171,13 @@ class Trainer:
                     and (step + 1) == steps_in_epoch
                 ):
                     # apply adapter fusion weight regularization on the value matrix
-                    if (
-                        hasattr(self.model.config, "adapter_fusion")
-                        and self.model.config.adapter_fusion["regularization"]
-                    ):
-                        fusion_reg_loss = self.model.base_model.get_fusion_regularization_loss()
-                        fusion_reg_loss.backward()
+                    # pooh ignore fusion loss
+                    # if (
+                    #     hasattr(self.model.config, "adapter_fusion")
+                    #     and self.model.config.adapter_fusion["regularization"]
+                    # ):
+                    #     fusion_reg_loss = self.model.base_model.get_fusion_regularization_loss()
+                    #     fusion_reg_loss.backward()
 
                     # Gradient clipping
                     if self.args.max_grad_norm is not None and self.args.max_grad_norm > 0 and not self.deepspeed:
@@ -2122,7 +2123,8 @@ class Trainer:
                     loss, outputs = self.compute_loss(model, inputs, return_outputs=True)
                     loss = loss.mean().detach()
                     if isinstance(outputs, dict):
-                        logits = tuple(v for k, v in outputs.items() if k not in ignore_keys + ["loss"])
+                         # pooh changed ["loss"] to ["loss","hidden_states"]
+                        logits = tuple(v for k, v in outputs.items() if k not in ignore_keys + ["loss", "hidden_states"])
                     else:
                         logits = outputs[1:]
                 else:

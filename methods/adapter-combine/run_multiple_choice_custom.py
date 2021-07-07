@@ -35,6 +35,7 @@ from transformers import (
     # Trainer,
     TrainingArguments,
     set_seed,
+    AdapterFusionConfig,
 )
 from custom.adapters.training_custom import FusionArguments
 

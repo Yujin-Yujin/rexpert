@@ -5,9 +5,13 @@
 
 # cd ../train_fusion/expert/linear/scripts
 export CUDA_VISIBLE_DEVICES=3
-export DATASET=../../../../dataset/multikg/10k
-export PRETRAINED_ADAPTER_DIR_PATH=../../../../output/best/expert/adapters/full
-export OUTPUT_DIR=../../../../output/expert/fusions/linear-full/10k
+# export DATASET=../../../../dataset/multikg/10k
+# export PRETRAINED_ADAPTER_DIR_PATH=../../../../output/best/expert/adapters/full
+# export OUTPUT_DIR=../../../../output/expert/fusions/linear-full/10k
+export DATASET=/home/yujin731/rexpert/dataset/kg-dataset/small
+export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin731/rexpert/output/best/adapters/full
+export OUTPUT_DIR=/home/yujin731/rexpert/output/fusions/small
+
 export BATCH=8
 export BEST_MODEL_PATH=../../../../output/best/expert/fusions/linear
 

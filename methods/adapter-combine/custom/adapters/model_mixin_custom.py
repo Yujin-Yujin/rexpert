@@ -197,6 +197,8 @@ class ModelAdaptersMixin(ABC):
                 - a dictionary representing the adapter fusion configuration
                 - the path to a file containing the adapter fusion configuration
         """
+
+
         if override_kwargs is None:
             override_kwargs = {}
         if isinstance(adapter_fusion_config, str) and adapter_fusion_config in ADAPTERFUSION_CONFIG_MAP:
@@ -243,7 +245,8 @@ class ModelAdaptersMixin(ABC):
             if override_kwargs is None:
                 override_kwargs = {}
             if adapter_fusion_config is not None:
-                self.set_adapter_fusion_config(adapter_fusion_config, **override_kwargs)
+                # self.set_adapter_fusion_config(adapter_fusion_config, **override_kwargs)
+                self.set_adapter_fusion_config(adapter_fusion_config, override_kwargs)
             else:
                 self.set_adapter_fusion_config(DEFAULT_ADAPTERFUSION_CONFIG)
         elif hasattr(self.config, "adapter_fusion") and adapter_fusion_config is not None:
