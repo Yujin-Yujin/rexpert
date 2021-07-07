@@ -153,7 +153,7 @@ class BertFusion(nn.Module):
         #         "The hidden size (%d) is not a multiple of the number of attention "
         #         "heads (%d)" % (config.hidden_size, config.num_attention_heads))
         self.config = config
-        self.output_attentions = config.output_attentions
+        # self.output_attentions = config.output_attentions
 
         self.dense_size = int(config.hidden_size)
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
@@ -165,13 +165,13 @@ class BertFusion(nn.Module):
         ):
             self.dense = nn.Linear(self.dense_size, 1)
 
-        if self.config.adapter_fusion["query"]:
-            self.query = nn.Linear(int(config.hidden_size), self.dense_size)
-            self.query.apply(Adapter.init_bert_weights)
+        # if self.config.adapter_fusion["query"]:
+        #     self.query = nn.Linear(int(config.hidden_size), self.dense_size)
+        #     self.query.apply(Adapter.init_bert_weights)
 
-        if self.config.adapter_fusion["key"]:
-            self.key = nn.Linear(self.dense_size, self.dense_size)
-            self.key.apply(Adapter.init_bert_weights)
+        # if self.config.adapter_fusion["key"]:
+        #     self.key = nn.Linear(self.dense_size, self.dense_size)
+        #     self.key.apply(Adapter.init_bert_weights)
 
         if self.config.adapter_fusion["value"]:
             self.value = nn.Linear(int(config.hidden_size), int(config.hidden_size), bias=False)
@@ -181,60 +181,61 @@ class BertFusion(nn.Module):
                     torch.zeros(int(config.hidden_size), int(config.hidden_size)) + 0.000001
                 ).fill_diagonal_(1.0)
 
-        if self.config.adapter_fusion["temperature"]:
-            self.T = 50.0
-        else:
-            self.T = 1.0
-        self.reduction = self.T / 1000.0
+        # if self.config.adapter_fusion["temperature"]:
+        #     self.T = 50.0
+        # else:
+        #     self.T = 1.0
+        # self.reduction = self.T / 1000.0
+        
+        print("pooh combine adapter stack residual {}".format(self.config.adapter_fusion['residual_before']))
 
-    def forward(self, query, key, value, residual):
+    def forward(self, query, value):
 
         if self.config.adapter_fusion["residual_before"]:
-            value += residual[:, :, None, :].repeat(1, 1, value.size(2), 1)
+            # value += residual[:, :, None, :].repeat(1, 1, value.size(2), 1)
+            value += query
 
-        if self.config.adapter_fusion["query"]:
-            query_layer = self.query(query)
-        else:
-            query_layer = query
+        context_layer = self.value(value)
+        # if self.config.adapter_fusion["query"]:
+        #     query_layer = self.query(query)
+        # else:
+        #     query_layer = query
 
-        if self.config.adapter_fusion["key"]:
-            key_layer = self.key(key)
-        else:
-            key_layer = key
+        # if self.config.adapter_fusion["key"]:
+        #     key_layer = self.key(key)
+        # else:
+        #     key_layer = key
 
-        if self.config.adapter_fusion["value"] and self.config.adapter_fusion["value_before_softmax"]:
-            # key/value have dims => batch, toks, number-of-adapters, feats
-            value_layer = self.value(value)
-        else:
-            value_layer = value
+        # if self.config.adapter_fusion["value"] and self.config.adapter_fusion["value_before_softmax"]:
+        #     # key/value have dims => batch, toks, number-of-adapters, feats
+        #     value_layer = self.value(value)
+        # else:
+        #     value_layer = value
 
-        # Take the dot product between "query" and "key" to get the raw attention scores.
-        attention_scores = torch.squeeze(torch.matmul(query_layer.unsqueeze(2), key_layer.transpose(-2, -1)), dim=2)
+        # # Take the dot product between "query" and "key" to get the raw attention scores.
+        # attention_scores = torch.squeeze(torch.matmul(query_layer.unsqueeze(2), key_layer.transpose(-2, -1)), dim=2)
 
-        attention_scores = self.dropout(attention_scores)
+        # attention_scores = self.dropout(attention_scores)
 
+        # # Normalize the attention scores to probabilities.
+        # attention_probs = nn.Softmax(dim=-1)(attention_scores / self.T)
+        # self.T = max(self.T - self.reduction, 1.0)
 
+        # if not self.training:
+        #     self.recent_attention = attention_probs.detach().cpu().numpy()
 
-        # Normalize the attention scores to probabilities.
-        fusion_attention_probs = nn.Softmax(dim=-1)(attention_scores / self.T)
-        
-        self.T = max(self.T - self.reduction, 1.0)
+        # context_layer = torch.squeeze(torch.matmul(attention_probs.unsqueeze(2), value_layer), dim=2)
 
-        if not self.training:
-            self.recent_attention = fusion_attention_probs.detach().cpu().numpy()
+        # if self.config.adapter_fusion["value"] and not self.config.adapter_fusion["value_before_softmax"]:
+        #     # key/value have dims => batch, toks, number-of-adapters, feats
+        #     context_layer = self.value(context_layer)
+        # else:
+        #     context_layer = context_layer
 
-        context_layer = torch.squeeze(torch.matmul(fusion_attention_probs.unsqueeze(2), value_layer), dim=2)
+        # if not self.config.adapter_fusion["residual_before"]:
+        #     context_layer += residual
 
-        if self.config.adapter_fusion["value"] and not self.config.adapter_fusion["value_before_softmax"]:
-            # key/value have dims => batch, toks, number-of-adapters, feats
-            context_layer = self.value(context_layer)
-        else:
-            context_layer = context_layer
-
-        if not self.config.adapter_fusion["residual_before"]:
-            context_layer += residual
-
-        return context_layer, fusion_attention_probs
+        return context_layer
 
 
 # Invertible Adapters

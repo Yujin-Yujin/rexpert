@@ -4,7 +4,7 @@ from typing import List, Mapping, Union
 import torch
 from torch import nn
 
-from custom.adapters.composition_custom import AdapterCompositionBlock, Fuse, Parallel, Split, Stack, parse_composition
+from transformers.adapters.composition import AdapterCompositionBlock, Fuse, Parallel, Split, Stack, parse_composition
 from custom.adapters.modeling_custom import Adapter, BertFusion
 
 
@@ -153,7 +153,7 @@ class AdapterLayerBaseMixin(ABC):
                 )
             # Case 1: We have a nested fusion layer -> call fusion method
             if isinstance(adapter_stack_layer, Fuse):
-                hidden_states, fusion_attention_probs = self.adapter_fusion(adapter_stack_layer, hidden_states, input_tensor, lvl=lvl + 1)
+                hidden_states = self.adapter_fusion(adapter_stack_layer, hidden_states, input_tensor, lvl=lvl + 1)
             # Case 2: We have a nested split layer -> call split method
             elif isinstance(adapter_stack_layer, Split):
                 hidden_states = self.adapter_split(adapter_stack_layer, hidden_states, input_tensor, lvl=lvl + 1)
@@ -163,7 +163,7 @@ class AdapterLayerBaseMixin(ABC):
                     adapter_stack_layer, hidden_states, input_tensor, lvl=lvl + 1
                 )
             # Case 4: We have a single adapter which is part of this module -> forward pass
-            elif adapter_stack_layer in self.adapters:                
+            elif adapter_stack_layer in self.adapters:
                 adapter_layer = self.adapters[adapter_stack_layer]
                 adapter_config = self.config.adapters.get(adapter_stack_layer)
                 hidden_states, _, residual = self.get_adapter_preparams(adapter_config, hidden_states, input_tensor)
@@ -176,7 +176,7 @@ class AdapterLayerBaseMixin(ABC):
 
         # If we got here, we either had another nested composition block
         # or no adapter was found. In both cases, we don't need to set the second return value for fusion
-        return hidden_states, None, input_tensor, fusion_attention_probs
+        return hidden_states, None, input_tensor
 
     def adapter_fusion(self, adapter_setup: Fuse, hidden_states, input_tensor, lvl=0):
         """
@@ -208,19 +208,18 @@ class AdapterLayerBaseMixin(ABC):
                 )
             # Case X: No adapter which is part of this module -> ignore
 
-
         if len(up_list) > 0:
             up_list = torch.stack(up_list)
             up_list = up_list.permute(1, 2, 0, 3)
 
-            hidden_states, fusion_attention_probs = self.adapter_fusion_layer[adapter_setup.name](
+            hidden_states = self.adapter_fusion_layer[adapter_setup.name](
                 query,
                 up_list,
                 up_list,
                 residual,
             )
 
-        return hidden_states, fusion_attention_probs
+        return hidden_states
 
     def adapter_split(self, adapter_setup: Split, hidden_states, input_tensor, lvl=0):
         """
@@ -346,17 +345,14 @@ class AdapterLayerBaseMixin(ABC):
         skip_adapters = adapter_setup is None or (
             self.config.adapters.skip_layers is not None and self.layer_idx in self.config.adapters.skip_layers
         )
-
-        fusion_attention_probs=None
         if not skip_adapters and (len(set(self.adapters.keys()) & adapter_setup.flatten()) > 0):
             if isinstance(adapter_setup, Stack):
-                hidden_states, _, input_tensor, fusion_attention_probs = self.adapter_stack(adapter_setup, hidden_states, input_tensor)
+                hidden_states, _, input_tensor = self.adapter_stack(adapter_setup, hidden_states, input_tensor)
             elif isinstance(adapter_setup, Fuse):
-                hidden_states, fusion_attention_probs = self.adapter_fusion(adapter_setup, hidden_states, input_tensor)
+                hidden_states = self.adapter_fusion(adapter_setup, hidden_states, input_tensor)
             elif isinstance(adapter_setup, Split):
                 hidden_states = self.adapter_split(adapter_setup, hidden_states, input_tensor)
             elif isinstance(adapter_setup, Parallel):
-
                 # notice that we are overriding input tensor here to keep the same dim as hidden_states for the residual
                 # in case we were blowing up the batch for parallel processing of multiple adapters for the same input
                 hidden_states, input_tensor = self.adapter_parallel(adapter_setup, hidden_states, input_tensor)
@@ -375,4 +371,4 @@ class AdapterLayerBaseMixin(ABC):
         else:
             hidden_states = hidden_states + input_tensor
 
-        return hidden_states, fusion_attention_probs
+        return hidden_states

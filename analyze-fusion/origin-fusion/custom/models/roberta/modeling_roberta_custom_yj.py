@@ -59,8 +59,6 @@ from custom.modeling_utils_custom import (
 )
 from transformers.utils import logging
 from transformers.models.roberta.configuration_roberta import RobertaConfig
-import numpy as np  
-import pandas as pd      
 
 
 logger = logging.get_logger(__name__)
@@ -383,8 +381,8 @@ class RobertaOutput(BertOutputAdaptersMixin, nn.Module):
     def forward(self, hidden_states, input_tensor, **kwargs):
         hidden_states = self.dense(hidden_states)
         hidden_states = self.dropout(hidden_states)
-        hidden_states, attention_probs = self.adapters_forward(hidden_states, input_tensor, **kwargs)
-        return hidden_states, attention_probs
+        hidden_states, fusion_attention_probs = self.adapters_forward(hidden_states, input_tensor, **kwargs)
+        return hidden_states, fusion_attention_probs
 
 
 # Copied from transformers.models.bert.modeling_bert.BertLayer with Bert->Roberta
@@ -470,7 +468,6 @@ class RobertaLayer(BertLayerAdaptersMixin, nn.Module):
 
     def feed_forward_chunk(self, attention_output, **kwargs):
         intermediate_output = self.intermediate(attention_output)
-        # print("intermediate size {}".format(intermediate_output.size()))
         layer_output, attention_probs = self.output(intermediate_output, attention_output, **kwargs)
         return layer_output, attention_probs
 
@@ -493,7 +490,7 @@ class RobertaEncoder(BertEncoderAdaptersMixin, nn.Module):
         use_cache=None,
         output_attentions=False,
         output_hidden_states=False,
-        return_dict=False,
+        return_dict=True,
         **kwargs
     ):
         all_hidden_states = () if output_hidden_states else None
@@ -501,8 +498,6 @@ class RobertaEncoder(BertEncoderAdaptersMixin, nn.Module):
         all_cross_attentions = () if output_attentions and self.config.add_cross_attention else None
 
         next_decoder_cache = () if use_cache else None
-        
-        fusion_attention_probs = []
         for i, layer_module in enumerate(self.layer):
             if output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
@@ -534,7 +529,7 @@ class RobertaEncoder(BertEncoderAdaptersMixin, nn.Module):
                     encoder_attention_mask,
                 )
             else:
-                layer_outputs, fusion_attention_probs_per_layer = layer_module(
+                layer_outputs, fusion_attention_probs = layer_module(
                     hidden_states,
                     attention_mask,
                     layer_head_mask,
@@ -544,7 +539,6 @@ class RobertaEncoder(BertEncoderAdaptersMixin, nn.Module):
                     output_attentions,
                     **kwargs,
                 )
-                fusion_attention_probs.append(fusion_attention_probs_per_layer)
 
             hidden_states = layer_outputs[0]
             attention_mask = self.adjust_attention_mask_for_parallel(hidden_states, attention_mask)
@@ -560,6 +554,17 @@ class RobertaEncoder(BertEncoderAdaptersMixin, nn.Module):
             all_hidden_states = all_hidden_states + (hidden_states,)
 
         if not return_dict:
+            # return tuple(
+            #     v
+            #     for v in [
+            #         hidden_states,
+            #         next_decoder_cache,
+            #         all_hidden_states,
+            #         all_self_attentions,
+            #         all_cross_attentions,
+            #     ]
+            #     if v is not None
+            # )
             result = tuple(
                 v
                 for v in [
@@ -866,7 +871,7 @@ class RobertaModel(BertModelAdaptersMixin, RobertaPreTrainedModel):
         )
         sequence_output = encoder_outputs[0]
         pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
-        
+
         if not return_dict:
             return (sequence_output, pooled_output) + encoder_outputs[1:], fusion_attention_probs
 
@@ -1643,21 +1648,22 @@ def create_position_ids_from_input_ids(input_ids, padding_idx, past_key_values_l
     return incremental_indices.long() + padding_idx
 
 
-# Added custom modules
-
-class RobertaForMultipleChoiceCustom(RobertaForMultipleChoice):
+class RobertaForMultipleChoiceCustom(ModelWithHeadsAdaptersMixin, RobertaPreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"position_ids"]
 
-    def __init__(self, config, attention_loss_hyp=0.1):
-        super(RobertaForMultipleChoiceCustom, self).__init__(config)
-        self.attention_loss_hyp = attention_loss_hyp
-        self.fusion_layer_num = 2
-        self.csv_file_path="/home/yujin/rexpert/output/analysis/atomic,cwwv/adapter_selection_siqa_{}.csv".format(str(self.fusion_layer_num))
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.roberta = RobertaModel(config)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.classifier = nn.Linear(config.hidden_size, 1)
+
+        self.init_weights()
 
     @add_start_docstrings_to_model_forward(ROBERTA_INPUTS_DOCSTRING.format("batch_size, num_choices, sequence_length"))
     @add_code_sample_docstrings(
         tokenizer_class=_TOKENIZER_FOR_DOC,
-        checkpoint="roberta-base",
+        checkpoint=_CHECKPOINT_FOR_DOC,
         output_type=MultipleChoiceModelOutput,
         config_class=_CONFIG_FOR_DOC,
     )
@@ -1672,26 +1678,15 @@ class RobertaForMultipleChoiceCustom(RobertaForMultipleChoice):
         inputs_embeds=None,
         output_attentions=None,
         output_hidden_states=None,
-        return_dict=False,
+        return_dict=None,
         adapter_names=None,
-        attention_label=None,
-        step=None,
-        epoch=None,
     ):
-        # print("((((((")
-        
-        # print(adapter_names)
-        # print("((((((")
-        # raise RuntimeError
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`):
             Labels for computing the multiple choice classification loss. Indices should be in ``[0, ...,
             num_choices-1]`` where :obj:`num_choices` is the size of the second dimension of the input tensors. (See
             :obj:`input_ids` above)
         """
-        # (bz, options, seq_len)        
-        # print(input_ids.size())
-        # raise RuntimeError
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
         num_choices = input_ids.shape[1] if input_ids is not None else inputs_embeds.shape[1]
 
@@ -1705,7 +1700,8 @@ class RobertaForMultipleChoiceCustom(RobertaForMultipleChoice):
             else None
         )
 
-        outputs, fusion_attention_probs_list = self.roberta(
+
+        outputs, fusion_attention_probs = self.roberta(
             flat_input_ids,
             position_ids=flat_position_ids,
             token_type_ids=flat_token_type_ids,
@@ -1718,22 +1714,8 @@ class RobertaForMultipleChoiceCustom(RobertaForMultipleChoice):
             adapter_names=adapter_names,
         )
         pooled_output = outputs[1]
+        print("pooh fusion_attention_probs", fusion_attention_probs)
 
-        # adapter selection
-        last_fusion_attention = fusion_attention_probs_list[self.fusion_layer_num][:,0,:]
-        print("pooh last_fusion_attention", last_fusion_attention)
-        adapter_selection = torch.argmax(last_fusion_attention, dim=1)
-        adapter_selection = adapter_selection.view(-1, num_choices)
-
-        np_tensor =adapter_selection.cpu().data.numpy()
-        np_tensor_label =labels.cpu().data.numpy()
-        # print(len(np_tensor))
-        # print(len(np_tensor_label))
-
-        df = pd.DataFrame(np_tensor)
-        df['labels'] = np_tensor_label
-        df.to_csv(self.csv_file_path,mode='a', header=False, index=False)
-        
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
         reshaped_logits = logits.view(-1, num_choices)

@@ -708,6 +708,50 @@ class KGProcessor(DataProcessor):
 
         return examples
 
+class BlendProcessor(DataProcessor):
+    """Processor for the SocialIQA data set from YJ."""
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        logger.info("LOOKING AT {} train".format(data_dir))
+        return self._create_examples(self._read_json(os.path.join(data_dir, "train.jsonl")), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        logger.info("LOOKING AT {} dev".format(data_dir))
+        return self._create_examples(self._read_json(os.path.join(data_dir, "dev.jsonl")), "dev")
+
+    def get_test_examples(self, data_dir):
+        logger.info("LOOKING AT {} test".format(data_dir))
+        return self._create_examples(self._read_json(os.path.join(data_dir, "test.jsonl")), "test")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1", "2"]
+
+    def _read_json(self, input_file):
+        with open(input_file, "r", encoding="utf-8") as fin:
+            lines = fin.readlines()
+            return lines
+            
+    def _create_examples(self, lines, type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+
+        for line in tqdm.tqdm(lines, desc="read blend data"):
+            data_raw = json.loads(line.strip("\n"))
+            examples.append(
+                InputExample(
+                example_id= str(uuid.uuid1),
+                question="",  
+                contexts=[data_raw['context'], data_raw['context'], data_raw['context']],
+                endings=[data_raw['candidates'][0], data_raw['candidates'][1], data_raw['candidates'][2]],
+                label=data_raw['correct'],
+                )
+            )
+
+        return examples
+
 def convert_examples_to_features(
     examples: List[InputExample],
     label_list: List[str],
@@ -751,8 +795,8 @@ def convert_examples_to_features(
 
             choices_inputs.append(inputs)
 
-        label = label_map[example.label]
-        # label=example.label
+        # label = label_map[example.label]
+        label=example.label
 
         input_ids = [x["input_ids"] for x in choices_inputs]
         attention_mask = (
@@ -788,5 +832,6 @@ processors = {
                 "siqa":SocialIQAProcessor, 
                 "atomic":ATOMICProcessor, 
                 "csqa":CommonsenseqaProcessor,
-                "multikg": KGProcessor}
+                "multikg": KGProcessor,
+                "blend": BlendProcessor}
 # MULTIPLE_CHOICE_TASKS_NUM_LABELS = {"race", 4, "swag", 4, "arc", 4, "syn", 5}

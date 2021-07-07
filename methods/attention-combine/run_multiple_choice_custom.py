@@ -32,7 +32,7 @@ from transformers import (
     EvalPrediction,
     HfArgumentParser,
     MultiLingAdapterArguments,
-    Trainer,
+    # Trainer,
     TrainingArguments,
     set_seed,
 )
@@ -41,8 +41,8 @@ import pandas as pd
 import wandb
 import shutil
 
-from custom.models.roberta.modeling_roberta_custom import RobertaForMultipleChoiceCustom
-
+from custom.models.roberta.modeling_roberta_custom import RobertaForMultipleChoice
+from custom.trainer_custom import Trainer
 logger = logging.getLogger(__name__)
 
 
@@ -199,7 +199,7 @@ def main():
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
     )
-    model = RobertaForMultipleChoiceCustom.from_pretrained(
+    model = RobertaForMultipleChoice.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
@@ -274,12 +274,14 @@ def main():
             
         adapter_names = [fusion_args.pretrained_adapter_names.split(',')]
         pretrained_path_dirs = fusion_args.pretrained_adapter_dir_path.split(',')
+        print("pooh pretrained_path_dirs", pretrained_path_dirs)
         for idx, adapter_name in enumerate(adapter_names[0]):
             if len(pretrained_path_dirs) >1:
                 adapter_path = os.path.join(pretrained_path_dirs[idx], adapter_name)
             else:
                 adapter_path = os.path.join(fusion_args.pretrained_adapter_dir_path, adapter_name)
             
+            print("pooh adapter_path", adapter_path)
             adapter = model.load_adapter(adapter_path)
             model.set_active_adapters(adapter)  
 
@@ -323,6 +325,7 @@ def main():
         if training_args.do_eval or data_args.do_select or training_args.do_train
         else None
     )
+    print("fusion_args.train_fusion", fusion_args.train_fusion)
 
     test_dataset = (
     MultipleChoiceDataset(
@@ -345,15 +348,17 @@ def main():
             compute_metrics=compute_metrics,
         )
     else:
+        print("here")
         trainer = Trainer(
             model=model,
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             compute_metrics=compute_metrics,
-            # do_save_full_model=not adapter_args.train_adapter,
+            do_save_full_model=not fusion_args.train_fusion,
             do_save_adapters=adapter_args.train_adapter,
-            do_save_adapter_fusion=fusion_args.train_fusion
+            do_save_adapter_fusion=fusion_args.train_fusion,
+            adapter_names = adapter_names
         )
     # Training
     if training_args.do_train:
@@ -387,7 +392,7 @@ def main():
                     model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
                     cache_dir=model_args.cache_dir,
                     )
-            checkpoint_model = RobertaForMultipleChoiceCustom.from_pretrained(
+            checkpoint_model = RobertaForMultipleChoice.from_pretrained(
                     model_args.model_name_or_path,
                     from_tf=bool(".ckpt" in model_args.model_name_or_path),
                     config=config,
@@ -396,7 +401,9 @@ def main():
 
             adapter_names = [fusion_args.pretrained_adapter_names.split(',')]
             for adapter_name in adapter_names[0]:
+                print("pooh adapter_name", adapter_name)
                 adapter_path = os.path.join(fusion_args.pretrained_adapter_dir_path, adapter_name)
+                print("pooh adapter_path", adapter_path)
                 
                 # adapter = model.load_adapter("/" + adapter_path)
                 adapter=checkpoint_model.load_adapter(adapter_path)
@@ -412,6 +419,7 @@ def main():
                 compute_metrics=compute_metrics,
                 # do_save_full_model=not adapter_args.train_adapter,
                 do_save_adapters=adapter_args.train_adapter,
+
             )
 
             eval_result = temp_trainer.evaluate()

@@ -213,17 +213,14 @@ class BertFusion(nn.Module):
 
         attention_scores = self.dropout(attention_scores)
 
-
-
         # Normalize the attention scores to probabilities.
-        fusion_attention_probs = nn.Softmax(dim=-1)(attention_scores / self.T)
-        
+        attention_probs = nn.Softmax(dim=-1)(attention_scores / self.T)
         self.T = max(self.T - self.reduction, 1.0)
 
         if not self.training:
-            self.recent_attention = fusion_attention_probs.detach().cpu().numpy()
+            self.recent_attention = attention_probs.detach().cpu().numpy()
 
-        context_layer = torch.squeeze(torch.matmul(fusion_attention_probs.unsqueeze(2), value_layer), dim=2)
+        context_layer = torch.squeeze(torch.matmul(attention_probs.unsqueeze(2), value_layer), dim=2)
 
         if self.config.adapter_fusion["value"] and not self.config.adapter_fusion["value_before_softmax"]:
             # key/value have dims => batch, toks, number-of-adapters, feats
@@ -234,7 +231,7 @@ class BertFusion(nn.Module):
         if not self.config.adapter_fusion["residual_before"]:
             context_layer += residual
 
-        return context_layer, fusion_attention_probs
+        return context_layer
 
 
 # Invertible Adapters

@@ -1,24 +1,20 @@
-#!/bin/bash
-
 export CUDA_VISIBLE_DEVICES=4
-export DATASET=../../../../rexpert/dataset/benchmark/socialiqa
-export PRETRAINED_ADAPTER_DIR_PATH=../../../../rexpert/output/best/adapters/full
-export OUTPUT_DIR=../../../../rexpert/output/analysis
+export DATASET=/home/yujin/rexpert/dataset/blend
+export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/rexpert/output/best/adapters/full
+export OUTPUT_DIR=/home/yujin/rexpert/output/fusions/blend
 export BATCH=8
-export PRETRAINED_FUSION_LAYER=../../../../rexpert/output/fusions/full/atomic,cwwv/atomic,cwwv
 
 export ADAPTER_NAMES=atomic,cwwv
-python ../run_multiple_choice_custom.py \
-    --task_name siqa \
+python ../run_multiple_choice.py \
+    --task_name blend \
     --model_name_or_path roberta-large \
     --pretrained_adapter_names $ADAPTER_NAMES \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \
-    --fusion_path $PRETRAINED_FUSION_LAYER\
-    --wandb_project "fusion-analysis" \
+    --wandb_project "fusion-blend" \
     --wandb_entity "rexpert" \
     --wandb_name "fusion-$ADAPTER_NAMES" \
-    --test_fusion \
-    --do_eval \
+    --train_fusion \
+    --do_train \
     --seed 42 \
     --data_dir $DATASET \
     --learning_rate 5e-5 \

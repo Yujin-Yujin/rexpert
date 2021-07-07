@@ -5,7 +5,7 @@ from typing import List, Mapping, Optional, Union
 
 from torch import nn
 
-from custom.adapters.composition_custom import AdapterCompositionBlock, Fuse, parse_composition
+from transformers.adapters.composition import AdapterCompositionBlock, Fuse, parse_composition
 from transformers.adapters.configuration import (
     ADAPTERFUSION_CONFIG_MAP,
     DEFAULT_ADAPTERFUSION_CONFIG,

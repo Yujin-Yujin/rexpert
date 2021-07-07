@@ -5,8 +5,8 @@ from typing import List, Mapping, Optional, Union
 
 from torch import nn
 
-from custom.adapters.composition_custom import AdapterCompositionBlock, Fuse, parse_composition
-from transformers.adapters.configuration import (
+from .composition import AdapterCompositionBlock, Fuse, parse_composition
+from .configuration import (
     ADAPTERFUSION_CONFIG_MAP,
     DEFAULT_ADAPTERFUSION_CONFIG,
     AdapterConfig,
@@ -14,9 +14,9 @@ from transformers.adapters.configuration import (
     ModelAdaptersConfig,
     get_adapter_config_hash,
 )
-from transformers.adapters.loading import AdapterFusionLoader, AdapterLoader, PredictionHeadLoader, WeightsLoader
-from custom.adapters.modeling_custom import Adapter, GLOWCouplingBlock, NICECouplingBlock
-from transformers.adapters.utils import inherit_doc
+from .loading import AdapterFusionLoader, AdapterLoader, PredictionHeadLoader, WeightsLoader
+from .modeling import Adapter, GLOWCouplingBlock, NICECouplingBlock
+from .utils import inherit_doc
 
 
 logger = logging.getLogger(__name__)
