@@ -461,6 +461,7 @@ def main():
     )
 
     if data_args.attention_layer_path:
+        print("pooh load attention_layer_path")
         model.load_state_dict(torch.load(data_args.attention_layer_path))
 
     trainer = Trainer(

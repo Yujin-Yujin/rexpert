@@ -794,9 +794,10 @@ def convert_examples_to_features(
                 )
 
             choices_inputs.append(inputs)
-
-        # label = label_map[example.label]
-        label=example.label
+        if type(example.label) == int:
+            label=example.label
+        else:
+            label = label_map[example.label]
 
         input_ids = [x["input_ids"] for x in choices_inputs]
         attention_mask = (

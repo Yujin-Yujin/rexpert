@@ -188,6 +188,7 @@ class BertFusion(nn.Module):
         # self.reduction = self.T / 1000.0
         
         print("pooh combine adapter stack residual {}".format(self.config.adapter_fusion['residual_before']))
+        print("if residual is False, residual after value layer")
 
     def forward(self, query, value):
 
@@ -232,8 +233,8 @@ class BertFusion(nn.Module):
         # else:
         #     context_layer = context_layer
 
-        # if not self.config.adapter_fusion["residual_before"]:
-        #     context_layer += residual
+        if not self.config.adapter_fusion["residual_before"]:
+            context_layer += residual
 
         return context_layer
 

@@ -1,14 +1,14 @@
-cd /home/yujin/rexpert/adapter-transformers
+# cd /home/yujin/rexpert/adapter-transformers
 
-pip install .
+# pip install .
 
-cd /home/yujin/rexpert/train_fusion/expert/origin/scripts
+# cd /home/yujin/rexpert/train_fusion/expert/origin/scripts
 
 
-export CUDA_VISIBLE_DEVICES=4
-export DATASET=/home/yujin/rexpert/dataset/kg-dataset/multikg
+export CUDA_VISIBLE_DEVICES=3
+export DATASET=/home/yujin/rexpert/dataset/kg-dataset/small
 export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/rexpert/output/best/adapters/full
-export OUTPUT_DIR=/home/yujin/rexpert/output/fusions/full
+export OUTPUT_DIR=/home/yujin/rexpert/output/fusions/small
 export BATCH=8
 export BEST_MODEL_PATH=/home/yujin/rexpert/output/best/fusions/full
 

@@ -1,8 +1,8 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=0
-export DATASET=../../../../rexpert/dataset/kg-dataset/small
+export CUDA_VISIBLE_DEVICES=1
+export DATASET=../../../../dataset/kg-dataset/multikg/10k
 export PRETRAINED_ADAPTER_DIR_PATH=../../../../rexpert/output/best/adapters/full
-export OUTPUT_DIR=../../../../rexpert/output/fusions/small
+export OUTPUT_DIR=../../../../rexpert/output/fusions/10k/origin
 export BATCH=8
 
 export ADAPTER_NAMES=atomic,cwwv
@@ -11,9 +11,9 @@ python ../run_multiple_choice_custom.py \
     --model_name_or_path roberta-large \
     --pretrained_adapter_names $ADAPTER_NAMES \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \
-    --wandb_project "fusion-contrastive" \
+    --wandb_project "fusion-origin" \
     --wandb_entity "rexpert" \
-    --wandb_name "fusion-$ADAPTER_NAMES-test" \
+    --wandb_name "fusion-$ADAPTER_NAMES-10k" \
     --train_fusion \
     --do_train \
     --seed 42 \

@@ -1,21 +1,20 @@
-#!/bin/bash
 export CUDA_VISIBLE_DEVICES=1
-export DATASET=../../../dataset/kg-dataset/small
-export PRETRAINED_ADAPTER_DIR_PATH=../../../output/best/adapters/full
-export OUTPUT_DIR=../../../output/fusions/small
-export BATCH=4
-export ATTENTION_LAYER_PATH=../../../output/fusions/small/atomic,cwwv/pytorch_model.bin
+export DATASET=/home/yujin/rexpert/dataset/blend/10k/atomic,cwwv
+export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/rexpert/output/best/adapters/full
+export OUTPUT_DIR=/home/yujin/rexpert/output/fusions/blend/10k/atomic,cwwv
+export BATCH=8
 
 export ADAPTER_NAMES=atomic,cwwv
-python ../inference_multiple_choice_attention.py \
-    --task_name multikg \
+python ../../run_multiple_choice.py \
+    --task_name blend \
     --model_name_or_path roberta-large \
-    --adapter_names $ADAPTER_NAMES \
+    --pretrained_adapter_names $ADAPTER_NAMES \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \
-    --wandb_project "fusion-attention" \
+    --wandb_project "fusion-blend" \
     --wandb_entity "rexpert" \
-    --wandb_name "fusion-$ADAPTER_NAMES-test" \
-    --attention_layer_path $ATTENTION_LAYER_PATH \
+    --wandb_name "fusion-$ADAPTER_NAMES-10k-atomic,cwwv" \
+    --train_fusion \
+    --do_train \
     --do_eval \
     --seed 42 \
     --data_dir $DATASET \

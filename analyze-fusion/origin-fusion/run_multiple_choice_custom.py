@@ -295,8 +295,8 @@ def main():
                 model.add_fusion(adapter_names[0])
 
 
-        for (n,p) in model.named_parameters():
-            print(n, p.requires_grad)
+        # for (n,p) in model.named_parameters():
+        #     print(n, p.requires_grad)
 
     # Get datasets
     train_dataset = (

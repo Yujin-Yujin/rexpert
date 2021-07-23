@@ -2,11 +2,15 @@ import pandas as pd
 from tqdm import tqdm
 import random
 import json
+import os
 
-atomic_dataset_path = ["/home/yujin/rexpert/dataset/kg-dataset/atomic/train_random.jsonl","/home/yujin/rexpert/dataset/kg-dataset/atomic/dev_random.jsonl"]
-# atomic_dataset_path = ["/home/yujin/r-expert/dataset/atomic/small-test/train_random.jsonl","/home/yujin/r-expert/dataset/atomic/small-test/dev_random.jsonl"]
-cwwv_dataset_path = ["/home/yujin/rexpert/dataset/kg-dataset/cwwv/train_random.jsonl","/home/yujin/rexpert/dataset/kg-dataset/cwwv/dev_random.jsonl"]
-output_path = ["/home/yujin/rexpert/dataset/blend/train_random.jsonl","/home/yujin/rexpert/dataset/blend/dev_random.jsonl"]
+dataset_dir = "/home/yujin/rexpert/dataset/kg-dataset"
+atomic_dataset_path = [os.path.join(dataset_dir,"atomic","10k","train_random.jsonl"),os.path.join(dataset_dir,"atomic","10k","dev_random.jsonl")]
+cwwv_dataset_path = [os.path.join(dataset_dir,"cwwv","10k","train_random.jsonl"),os.path.join(dataset_dir,"cwwv","10k","dev_random.jsonl")]
+
+output_path = ["/home/yujin/rexpert/dataset/blend/10k/cwwv,atomic/train_random.jsonl","/home/yujin/rexpert/dataset/blend/10k/cwwv,atomic/dev_random.jsonl"]
+mode_list = [ "atomic,cwwv", "cwwv,atomic"]
+mode = mode_list[1]
 
 def cwwv_convert(example):
     example = json.loads(example.strip("\n"))
@@ -57,14 +61,22 @@ for i in range(len(atomic_dataset_path)):
 
         assert len(a_candidates) == len(a_candidates) and len(a_candidates) == 3, "candidates error"
 
-        n_candidates = [a_candidates[x] + " " + c_candidates[x] for x in range(len(a_candidates))]
-        assert len(n_candidates) == 3, "candidates error2"
+        if mode == mode_list[0]:
+            n_candidates = [a_candidates[x] + " " + c_candidates[x] for x in range(len(a_candidates))]
+            assert len(n_candidates) == 3, "candidates error2"
 
-        n_answer_index, n_candidates = answer_index_shuffle(n_candidates)
+            n_answer_index, n_candidates = answer_index_shuffle(n_candidates)
+            blend_df = blend_df.append({"context" : a_context + " " + c_context,
+                                        "correct" : n_answer_index,
+                                        "candidates" : n_candidates}, ignore_index=True)
+        elif mode == mode_list[1]:
+            n_candidates = [c_candidates[x] + " " +  a_candidates[x] for x in range(len(a_candidates))]
+            assert len(n_candidates) == 3, "candidates error2"
 
-        blend_df = blend_df.append({"context" : a_context + " " + c_context,
-        "correct" : n_answer_index,
-        "candidates" : n_candidates}, ignore_index=True)
+            n_answer_index, n_candidates = answer_index_shuffle(n_candidates)
+            blend_df = blend_df.append({"context" : c_context + " " + a_context,
+                                        "correct" : n_answer_index,
+                                        "candidates" : n_candidates}, ignore_index=True)
     
     
     blend_json = blend_df.to_json(orient='records')

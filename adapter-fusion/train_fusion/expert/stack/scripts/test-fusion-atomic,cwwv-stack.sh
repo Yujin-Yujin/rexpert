@@ -1,17 +1,16 @@
-cd /home/yujin/r-expert/adapter-transformers-stack
+cd /home/yujin/rexpert/adapter-transformers-customs/adapter-transformers-stack
 
 pip install .
 
-cd /home/yujin/r-expert/train_fusion/expert/stack/scripts
+cd /home/yujin/rexpert/adapter-fusion/train_fusion/expert/stack/scripts
 
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=4
 # export DATASET=/home/yujin/r-expert/dataset/socialiqa/origin
-export DATASET=/home/yujin/r-expert/dataset/commonsense/origin
-export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/r-expert/output/best/expert/adapters/full
-export PRETRAINED_FUSION_DIR_PATH=/home/yujin/r-expert/output/expert/fusions/stack/10k/atomic,cwwv/atomic,cwwv
-export OUTPUT_DIR=/home/yujin/r-expert/output/expert/fusions/stack/10k
+export DATASET=/home/yujin/rexpert/dataset/benchmark/commonsense/origin
+export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/rexpert/output/best/adapters/full
+export PRETRAINED_FUSION_DIR_PATH=/home/yujin/rexpert/output/fusions/stack-pip/atomic,cwwv/atomic,cwwv
+export OUTPUT_DIR=/home/yujin/rexpert/output/fusions/stack-pip/
 export BATCH=8
-export BEST_MODEL_PATH=/home/yujin/r-expert/output/best/expert/fusions/stack
 
 export ADAPTER_NAMES=atomic,cwwv
 python ../run_multiple_choice.py \
@@ -27,7 +26,6 @@ python ../run_multiple_choice.py \
     --do_eval \
     --seed 42 \
     --data_dir $DATASET \
-    --best_model_path $BEST_MODEL_PATH \
     --learning_rate 5e-5 \
     --num_train_epochs 1 \
     --max_seq_length 128 \

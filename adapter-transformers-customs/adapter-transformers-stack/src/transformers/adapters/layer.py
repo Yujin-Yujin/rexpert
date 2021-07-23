@@ -217,6 +217,7 @@ class AdapterLayerBaseMixin(ABC):
                 hidden_states += up_list[:,:,i,:]
 
             hidden_states = self.adapter_fusion_layer[adapter_setup.name](
+                query,
                 hidden_states
             )
 

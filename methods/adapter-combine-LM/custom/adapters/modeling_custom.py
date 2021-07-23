@@ -219,7 +219,6 @@ class BertFusion(nn.Module):
 
         # Normalize the attention scores to probabilities.
         attention_probs = nn.Softmax(dim=-1)(attention_scores / self.T)
-
         self.T = max(self.T - self.reduction, 1.0)
 
         if not self.training:

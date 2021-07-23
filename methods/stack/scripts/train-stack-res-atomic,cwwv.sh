@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=2
 export DATASET=../../../dataset/kg-dataset/multikg
 export PRETRAINED_ADAPTER_DIR_PATH=../../../output/best/adapters/full
 export OUTPUT_DIR=../../../../rexpert/output/fusions/stack-res
@@ -28,5 +28,4 @@ python ../run_multiple_choice_custom.py \
     --logging_strategy epoch \
     --save_strategy epoch \
     --gradient_accumulation_steps 1 \
-    --residual_before \
     --overwrite_output 

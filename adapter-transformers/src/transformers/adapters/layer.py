@@ -191,20 +191,17 @@ class AdapterLayerBaseMixin(ABC):
         for adapter_block in adapter_setup:
             # Case 1: We have a nested stack -> call stack method
             if isinstance(adapter_block, Stack):
-                print("case 1")
                 _, up, _ = self.adapter_stack(adapter_block, hidden_states, input_tensor, lvl=lvl + 1)
                 if up is not None:  # could be none if stack is empty
                     up_list.append(up)
             # Case 2: We have a single adapter which is part of this module -> forward pass
             elif adapter_block in self.adapters:
-                print("case 2")
 
                 adapter_layer = self.adapters[adapter_block]
                 _, _, up = adapter_layer(hidden_states, residual_input=residual)
                 up_list.append(up)
             # Case 3: nesting other composition blocks is invalid
             elif isinstance(adapter_block, AdapterCompositionBlock):
-                print("case 3")
 
                 raise ValueError(
                     "Invalid adapter setup. Cannot nest {} in {}".format(
@@ -212,7 +209,6 @@ class AdapterLayerBaseMixin(ABC):
                     )
                 )
             # Case X: No adapter which is part of this module -> ignore
-        raise RuntimeError()
         if len(up_list) > 0:
             up_list = torch.stack(up_list)
             up_list = up_list.permute(1, 2, 0, 3)

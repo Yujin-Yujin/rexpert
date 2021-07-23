@@ -1651,7 +1651,7 @@ class RobertaForMultipleChoiceCustom(RobertaForMultipleChoice):
     def __init__(self, config, attention_loss_hyp=0.1):
         super(RobertaForMultipleChoiceCustom, self).__init__(config)
         self.attention_loss_hyp = attention_loss_hyp
-        self.fusion_layer_num = 2
+        self.fusion_layer_num = -1
         self.csv_file_path="/home/yujin/rexpert/output/analysis/atomic,cwwv/adapter_selection_siqa_{}.csv".format(str(self.fusion_layer_num))
 
     @add_start_docstrings_to_model_forward(ROBERTA_INPUTS_DOCSTRING.format("batch_size, num_choices, sequence_length"))

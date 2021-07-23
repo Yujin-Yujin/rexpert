@@ -1,15 +1,18 @@
 #!/bin/bash
 
-export CUDA_VISIBLE_DEVICES=4
-export DATASET=../../../../rexpert/dataset/benchmark/socialiqa
+export CUDA_VISIBLE_DEVICES=1
+# export DATASET=../../../../rexpert/dataset/benchmark/socialiqa
+export DATASET=../../../../rexpert/dataset/benchmark/commonsense/origin
 export PRETRAINED_ADAPTER_DIR_PATH=../../../../rexpert/output/best/adapters/full
 export OUTPUT_DIR=../../../../rexpert/output/analysis
 export BATCH=8
-export PRETRAINED_FUSION_LAYER=../../../../rexpert/output/fusions/full/atomic,cwwv/atomic,cwwv
+# export PRETRAINED_FUSION_LAYER=../../../../rexpert/output/fusions/full/atomic,cwwv/atomic,cwwv
+# export PRETRAINED_FUSION_LAYER=/home/yujin/rexpert/output/fusions/blend/10k/atomic,cwwv/atomic,cwwv/atomic,cwwv
+export PRETRAINED_FUSION_LAYER=/home/bwoo/workspace/rexpert/att_sup/0.1/atomic,cwwv/atomic,cwwv
 
 export ADAPTER_NAMES=atomic,cwwv
 python ../run_multiple_choice_custom.py \
-    --task_name siqa \
+    --task_name csqa \
     --model_name_or_path roberta-large \
     --pretrained_adapter_names $ADAPTER_NAMES \
     --pretrained_adapter_dir_path $PRETRAINED_ADAPTER_DIR_PATH \

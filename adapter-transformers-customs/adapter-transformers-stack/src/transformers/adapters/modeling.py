@@ -189,7 +189,7 @@ class BertFusion(nn.Module):
         print("pooh - fusion stack")
 
     # def forward(self, query, key, value, residual):
-    def forward(self, value):
+    def forward(self, query, value):
 
         # if self.config.adapter_fusion["residual_before"]:
         #     value += residual[:, :, None, :].repeat(1, 1, value.size(2), 1)
@@ -225,9 +225,7 @@ class BertFusion(nn.Module):
         # context_layer = torch.squeeze(torch.matmul(attention_probs.unsqueeze(2), value_layer), dim=2)
 
         #pooh check!!!!
-        print("pooh value.shape",value.shape)
         context_layer = self.value(value)
-        print("pooh context_layer.shape", context_layer.shape)
         # if self.config.adapter_fusion["value"] and not self.config.adapter_fusion["value_before_softmax"]:
         #     # key/value have dims => batch, toks, feats
         #     context_layer = self.value(value)

@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=4
+export CUDA_VISIBLE_DEVICES=3
 export DATASET=/home/yujin/rexpert/dataset/blend
 export PRETRAINED_ADAPTER_DIR_PATH=/home/yujin/rexpert/output/best/adapters/full
 export OUTPUT_DIR=/home/yujin/rexpert/output/fusions/blend
@@ -15,6 +15,7 @@ python ../run_multiple_choice.py \
     --wandb_name "fusion-$ADAPTER_NAMES" \
     --train_fusion \
     --do_train \
+    --do_eval \
     --seed 42 \
     --data_dir $DATASET \
     --learning_rate 5e-5 \
